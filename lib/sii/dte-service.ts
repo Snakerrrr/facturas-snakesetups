@@ -1,11 +1,10 @@
-import type { DteFormData, EmpresaConfig, DteTypeCode, DteResult } from "../types";
+import type {
+  DteFormData,
+  EmpresaConfig,
+  DteResult,
+} from "../types";
 import type { DteDocument } from "./types";
 import { formatDate } from "../utils";
-import {
-  getCertificateBuffer,
-  getCAFXml,
-  getNextFolio,
-} from "../storage";
 
 function buildDteDocument(
   data: DteFormData,
@@ -58,7 +57,9 @@ function buildDteDocument(
       MontoItem: item.montoItem,
       DescuentoPct: item.descuentoPct,
       DescuentoMonto: item.descuentoPct
-        ? Math.round(item.cantidad * item.precioUnitario * (item.descuentoPct / 100))
+        ? Math.round(
+            item.cantidad * item.precioUnitario * (item.descuentoPct / 100)
+          )
         : undefined,
     })),
   };
@@ -77,34 +78,20 @@ function buildDteDocument(
   return doc;
 }
 
-export async function emitirDte(
-  userId: string,
-  data: DteFormData,
-  empresa: EmpresaConfig,
-  certPassword: string
-): Promise<DteResult> {
-  const folioResult = await getNextFolio(userId, data.tipoDte);
-  if (!folioResult) {
-    throw new Error(
-      `No hay folios disponibles para el tipo ${data.tipoDte}. Cargue un nuevo CAF.`
-    );
-  }
+export interface EmitirDteInput {
+  data: DteFormData;
+  empresa: EmpresaConfig;
+  folio: number;
+  certBase64: string;
+  certPassword: string;
+  cafXml: string;
+}
 
-  const certBuffer = await getCertificateBuffer(userId);
-  if (!certBuffer) {
-    throw new Error(
-      "No se encontró certificado digital. Cárguelo en Configuración."
-    );
-  }
+export async function emitirDte(input: EmitirDteInput): Promise<DteResult> {
+  const { data, empresa, folio, certBase64, certPassword, cafXml } = input;
 
-  const cafXml = await getCAFXml(userId, data.tipoDte);
-  if (!cafXml) {
-    throw new Error(
-      `No se encontró CAF para el tipo ${data.tipoDte}. Cárguelo en Configuración.`
-    );
-  }
-
-  const dteDoc = buildDteDocument(data, empresa, folioResult.folio);
+  const certBuffer = Buffer.from(certBase64, "base64");
+  const dteDoc = buildDteDocument(data, empresa, folio);
 
   try {
     const { Certificado, CAF, DTE, EnvioDTE, EnviadorSII } = require("@devlas/dte-sii");
@@ -125,14 +112,15 @@ export async function emitirDte(
     envio.agregar(dte).firmar(cert);
 
     const enviador = new EnviadorSII(cert, {
-      ambiente: empresa.ambiente === "produccion" ? "produccion" : "certificacion",
+      ambiente:
+        empresa.ambiente === "produccion" ? "produccion" : "certificacion",
     });
 
     const resultado = await enviador.enviarDteSoap(envio.toXML());
 
     return {
       trackId: resultado.trackId || resultado.TRACKID || String(resultado),
-      folio: folioResult.folio,
+      folio,
       tipoDte: data.tipoDte,
       estado: "Enviado",
       xml: envio.toXML(),
@@ -143,23 +131,27 @@ export async function emitirDte(
   }
 }
 
+export interface ConsultarEstadoInput {
+  empresa: EmpresaConfig;
+  trackId: string;
+  certBase64: string;
+  certPassword: string;
+}
+
 export async function consultarEstadoDte(
-  userId: string,
-  empresa: EmpresaConfig,
-  trackId: string,
-  certPassword: string
+  input: ConsultarEstadoInput
 ): Promise<{ estado: string; glosa: string }> {
-  const certBuffer = await getCertificateBuffer(userId);
-  if (!certBuffer) {
-    throw new Error("No se encontró certificado digital.");
-  }
+  const { empresa, trackId, certBase64, certPassword } = input;
+
+  const certBuffer = Buffer.from(certBase64, "base64");
 
   try {
     const { Certificado, EnviadorSII } = require("@devlas/dte-sii");
 
     const cert = new Certificado(certBuffer, certPassword);
     const enviador = new EnviadorSII(cert, {
-      ambiente: empresa.ambiente === "produccion" ? "produccion" : "certificacion",
+      ambiente:
+        empresa.ambiente === "produccion" ? "produccion" : "certificacion",
     });
 
     const resultado = await enviador.consultarEstadoEnvio(

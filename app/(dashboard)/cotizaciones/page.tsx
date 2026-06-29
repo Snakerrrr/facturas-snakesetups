@@ -19,6 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { ItemsTable } from "@/components/items-table";
 import { ReceptorForm } from "@/components/receptor-form";
 import type { Receptor, ItemDetalle } from "@/lib/types";
+import { getEmpresa } from "@/lib/client-storage";
 
 const emptyReceptor: Receptor = {
   rut: "",
@@ -43,6 +44,12 @@ export default function CotizacionesPage() {
   const [generating, setGenerating] = useState(false);
 
   async function downloadPdf() {
+    const empresa = getEmpresa();
+    if (!empresa || !empresa.rut) {
+      toast.error("Debe configurar los datos de la empresa primero");
+      return;
+    }
+
     setGenerating(true);
     try {
       const res = await fetch("/api/cotizacion/pdf", {
@@ -53,6 +60,7 @@ export default function CotizacionesPage() {
           items,
           observaciones,
           diasValidez,
+          empresa,
         }),
       });
 
@@ -89,16 +97,14 @@ export default function CotizacionesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FileText className="h-6 w-6" />
-            Nueva Cotización
-          </h1>
-          <p className="text-muted-foreground">
-            Arme su cotización rápidamente y descárguela como PDF.
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <FileText className="h-6 w-6" />
+          Nueva Cotización
+        </h1>
+        <p className="text-muted-foreground">
+          Arme su cotización rápidamente y descárguela como PDF.
+        </p>
       </div>
 
       <Card>

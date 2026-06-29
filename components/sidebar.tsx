@@ -2,14 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
-import {
-  FileText,
-  Receipt,
-  Settings,
-  Menu,
-  X,
-} from "lucide-react";
+import { FileText, Receipt, Settings, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -50,47 +43,37 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Desktop sidebar */}
+      {/* Desktop */}
       <aside className="hidden md:flex w-64 flex-col border-r bg-card p-4 gap-6">
         <div className="flex items-center gap-2 px-3 py-2">
           <Receipt className="h-6 w-6" />
           <span className="text-lg font-bold">SnakeSetups</span>
         </div>
         <NavLinks />
-        <div className="mt-auto px-3">
-          <UserButton
-            appearance={{
-              elements: { avatarBox: "h-8 w-8" },
-            }}
-          />
-        </div>
       </aside>
 
-      {/* Mobile header */}
+      {/* Mobile */}
       <header className="md:hidden flex items-center justify-between border-b px-4 py-3 bg-card">
         <div className="flex items-center gap-2">
           <Receipt className="h-5 w-5" />
           <span className="font-bold">SnakeSetups</span>
         </div>
-        <div className="flex items-center gap-3">
-          <UserButton
-            appearance={{
-              elements: { avatarBox: "h-7 w-7" },
-            }}
-          />
-          <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger render={<Button variant="ghost" size="icon" />}>
-              {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </SheetTrigger>
-            <SheetContent side="left" className="w-64 p-4">
-              <div className="flex items-center gap-2 px-3 py-2 mb-4">
-                <Receipt className="h-6 w-6" />
-                <span className="text-lg font-bold">SnakeSetups</span>
-              </div>
-              <NavLinks onClick={() => setOpen(false)} />
-            </SheetContent>
-          </Sheet>
-        </div>
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger render={<Button variant="ghost" size="icon" />}>
+            {open ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
+          </SheetTrigger>
+          <SheetContent side="left" className="w-64 p-4">
+            <div className="flex items-center gap-2 px-3 py-2 mb-4">
+              <Receipt className="h-6 w-6" />
+              <span className="text-lg font-bold">SnakeSetups</span>
+            </div>
+            <NavLinks onClick={() => setOpen(false)} />
+          </SheetContent>
+        </Sheet>
       </header>
     </>
   );

@@ -1,39 +1,24 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
-import { getEmpresaConfig } from "@/lib/storage";
 import { consultarEstadoDte } from "@/lib/sii/dte-service";
 
-export async function GET(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-  }
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+  const { trackId, certBase64, certPassword, empresa } = body;
 
-  const trackId = req.nextUrl.searchParams.get("trackId");
-  const certPassword = req.nextUrl.searchParams.get("certPassword");
-
-  if (!trackId || !certPassword) {
+  if (!trackId || !certBase64 || !certPassword || !empresa) {
     return NextResponse.json(
-      { error: "trackId y certPassword son requeridos" },
-      { status: 400 }
-    );
-  }
-
-  const empresa = await getEmpresaConfig(userId);
-  if (!empresa) {
-    return NextResponse.json(
-      { error: "Debe configurar los datos de la empresa" },
+      { error: "Faltan datos requeridos" },
       { status: 400 }
     );
   }
 
   try {
-    const result = await consultarEstadoDte(
-      userId,
+    const result = await consultarEstadoDte({
       empresa,
       trackId,
-      certPassword
-    );
+      certBase64,
+      certPassword,
+    });
     return NextResponse.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

@@ -72,7 +72,6 @@ export interface CotizacionFormData {
 export interface FolioState {
   siguiente: number;
   maximo: number;
-  cafId: string;
 }
 
 export interface DteResult {

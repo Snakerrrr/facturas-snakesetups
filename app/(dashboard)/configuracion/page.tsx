@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Upload, Check, Trash2, Shield, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,18 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { DTE_TYPES, type EmpresaConfig, type DteTypeCode } from "@/lib/types";
+import { DTE_TYPES, type EmpresaConfig } from "@/lib/types";
+import {
+  saveEmpresa,
+  getEmpresa,
+  saveCertificate,
+  getCertificateName,
+  hasCertificate,
+  deleteCertificate,
+  saveCAF,
+  getFolioState,
+  fileToBase64,
+} from "@/lib/client-storage";
 
 const defaultEmpresa: EmpresaConfig = {
   rut: "",
@@ -40,127 +51,84 @@ const defaultEmpresa: EmpresaConfig = {
 
 export default function ConfiguracionPage() {
   const [empresa, setEmpresa] = useState<EmpresaConfig>(defaultEmpresa);
-  const [saving, setSaving] = useState(false);
-  const [certUploaded, setCertUploaded] = useState(false);
-  const [cafStatus, setCafStatus] = useState<Record<string, { siguiente: number; maximo: number } | null>>({});
+  const [certLoaded, setCertLoaded] = useState(false);
+  const [certName, setCertName] = useState<string | null>(null);
+  const [cafStatus, setCafStatus] = useState<
+    Record<string, { siguiente: number; maximo: number } | null>
+  >({});
 
-  const loadConfig = useCallback(async () => {
-    try {
-      const res = await fetch("/api/config/empresa");
-      const data = await res.json();
-      if (data && data.rut) {
-        setEmpresa(data);
-      }
-    } catch {
-      // First time, no config yet
-    }
-  }, []);
+  useEffect(() => {
+    const saved = getEmpresa();
+    if (saved) setEmpresa(saved);
 
-  const loadCafStatus = useCallback(async () => {
-    const statuses: Record<string, { siguiente: number; maximo: number } | null> = {};
+    setCertLoaded(hasCertificate());
+    setCertName(getCertificateName());
+
+    const statuses: Record<
+      string,
+      { siguiente: number; maximo: number } | null
+    > = {};
     for (const code of Object.keys(DTE_TYPES)) {
-      try {
-        const res = await fetch(`/api/config/caf?tipoDte=${code}`);
-        const data = await res.json();
-        statuses[code] = data;
-      } catch {
-        statuses[code] = null;
-      }
+      statuses[code] = getFolioState(parseInt(code) as keyof typeof DTE_TYPES);
     }
     setCafStatus(statuses);
   }, []);
 
-  useEffect(() => {
-    loadConfig();
-    loadCafStatus();
-  }, [loadConfig, loadCafStatus]);
-
-  async function saveEmpresa() {
-    setSaving(true);
-    try {
-      const res = await fetch("/api/config/empresa", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(empresa),
-      });
-      if (res.ok) {
-        toast.success("Datos de empresa guardados");
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "Error al guardar");
-      }
-    } catch {
-      toast.error("Error de conexión");
-    } finally {
-      setSaving(false);
-    }
+  function handleSaveEmpresa() {
+    saveEmpresa(empresa);
+    toast.success("Datos de empresa guardados en el navegador");
   }
 
-  async function uploadCert(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleUploadCert(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append("certificate", file);
-
-    try {
-      const res = await fetch("/api/config/certificate", {
-        method: "POST",
-        body: formData,
-      });
-      if (res.ok) {
-        setCertUploaded(true);
-        toast.success("Certificado subido correctamente");
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "Error al subir certificado");
-      }
-    } catch {
-      toast.error("Error de conexión");
+    if (!file.name.match(/\.(pfx|p12)$/i)) {
+      toast.error("El archivo debe ser .pfx o .p12");
+      return;
     }
+
+    const base64 = await fileToBase64(file);
+    saveCertificate(base64, file.name);
+    setCertLoaded(true);
+    setCertName(file.name);
+    toast.success("Certificado guardado en el navegador");
   }
 
-  async function deleteCert() {
-    try {
-      const res = await fetch("/api/config/certificate", { method: "DELETE" });
-      if (res.ok) {
-        setCertUploaded(false);
-        toast.success("Certificado eliminado");
-      }
-    } catch {
-      toast.error("Error al eliminar certificado");
-    }
+  function handleDeleteCert() {
+    deleteCertificate();
+    setCertLoaded(false);
+    setCertName(null);
+    toast.success("Certificado eliminado");
   }
 
-  async function uploadCaf(
+  async function handleUploadCaf(
     e: React.ChangeEvent<HTMLInputElement>,
     tipoDte: string
   ) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append("caf", file);
-    formData.append("tipoDte", tipoDte);
+    const cafXml = await file.text();
 
-    try {
-      const res = await fetch("/api/config/caf", {
-        method: "POST",
-        body: formData,
-      });
-      if (res.ok) {
-        const data = await res.json();
-        toast.success(
-          `CAF cargado: folios ${data.folioInicio} a ${data.folioFin}`
-        );
-        loadCafStatus();
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "Error al subir CAF");
-      }
-    } catch {
-      toast.error("Error de conexión");
+    const folioInicioMatch = cafXml.match(/<D>(\d+)<\/D>/);
+    const folioFinMatch = cafXml.match(/<H>(\d+)<\/H>/);
+
+    if (!folioInicioMatch || !folioFinMatch) {
+      toast.error("No se pudieron extraer los rangos de folios del CAF");
+      return;
     }
+
+    const folioInicio = parseInt(folioInicioMatch[1], 10);
+    const folioFin = parseInt(folioFinMatch[1], 10);
+    const code = parseInt(tipoDte) as keyof typeof DTE_TYPES;
+
+    saveCAF(code, cafXml, folioInicio, folioFin);
+    setCafStatus((prev) => ({
+      ...prev,
+      [tipoDte]: { siguiente: folioInicio, maximo: folioFin },
+    }));
+    toast.success(`CAF cargado: folios ${folioInicio} a ${folioFin}`);
   }
 
   function updateEmpresa(field: keyof EmpresaConfig, value: string | number) {
@@ -172,7 +140,7 @@ export default function ConfiguracionPage() {
       <div>
         <h1 className="text-2xl font-bold">Configuración</h1>
         <p className="text-muted-foreground">
-          Configure los datos de su empresa, certificado digital y folios CAF.
+          Los datos se guardan localmente en su navegador.
         </p>
       </div>
 
@@ -303,7 +271,11 @@ export default function ConfiguracionPage() {
                   <Select
                     value={empresa.ambiente}
                     onValueChange={(v) => {
-                      if (v) updateEmpresa("ambiente", v as "certificacion" | "produccion");
+                      if (v)
+                        updateEmpresa(
+                          "ambiente",
+                          v as "certificacion" | "produccion"
+                        );
                     }}
                   >
                     <SelectTrigger id="ambiente">
@@ -327,8 +299,8 @@ export default function ConfiguracionPage() {
                 </div>
               </div>
 
-              <Button onClick={saveEmpresa} disabled={saving} className="w-full sm:w-auto">
-                {saving ? "Guardando..." : "Guardar Datos"}
+              <Button onClick={handleSaveEmpresa} className="w-full sm:w-auto">
+                Guardar Datos
               </Button>
             </CardContent>
           </Card>
@@ -339,12 +311,12 @@ export default function ConfiguracionPage() {
             <CardHeader>
               <CardTitle>Certificado Digital</CardTitle>
               <CardDescription>
-                Suba su certificado .pfx/.p12 del SII. Se almacena encriptado
-                con AES-256. La contraseña se solicita al emitir cada factura.
+                Se guarda en localStorage de su navegador (no sale de su
+                computador). La contraseña se solicita al emitir cada factura.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {certUploaded ? (
+              {certLoaded ? (
                 <div className="flex items-center gap-4 p-4 rounded-lg border bg-green-50 dark:bg-green-950/20">
                   <Check className="h-5 w-5 text-green-600" />
                   <div className="flex-1">
@@ -352,13 +324,13 @@ export default function ConfiguracionPage() {
                       Certificado cargado
                     </p>
                     <p className="text-sm text-green-600 dark:text-green-400">
-                      Almacenado de forma segura con encriptación AES-256
+                      {certName || "cert.pfx"} - almacenado localmente
                     </p>
                   </div>
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={deleteCert}
+                    onClick={handleDeleteCert}
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
                     Eliminar
@@ -376,7 +348,7 @@ export default function ConfiguracionPage() {
                   <Input
                     type="file"
                     accept=".pfx,.p12"
-                    onChange={uploadCert}
+                    onChange={handleUploadCert}
                     className="max-w-xs"
                   />
                 </div>
@@ -391,7 +363,7 @@ export default function ConfiguracionPage() {
               <CardTitle>Códigos de Autorización de Folios (CAF)</CardTitle>
               <CardDescription>
                 Suba los archivos CAF obtenidos del SII para cada tipo de
-                documento.
+                documento. Se guardan localmente.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -408,14 +380,13 @@ export default function ConfiguracionPage() {
                           <p className="font-medium truncate">{name}</p>
                           <Badge variant="secondary">Tipo {code}</Badge>
                         </div>
-                        {status && (
+                        {status ? (
                           <p className="text-sm text-muted-foreground mt-1">
                             Folio siguiente: {status.siguiente} | Hasta:{" "}
                             {status.maximo} | Disponibles:{" "}
                             {status.maximo - status.siguiente + 1}
                           </p>
-                        )}
-                        {!status && (
+                        ) : (
                           <p className="text-sm text-muted-foreground mt-1">
                             Sin CAF cargado
                           </p>
@@ -425,7 +396,7 @@ export default function ConfiguracionPage() {
                         <Input
                           type="file"
                           accept=".xml"
-                          onChange={(e) => uploadCaf(e, code)}
+                          onChange={(e) => handleUploadCaf(e, code)}
                           className="w-[200px]"
                         />
                       </div>

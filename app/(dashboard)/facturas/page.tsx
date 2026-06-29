@@ -49,6 +49,14 @@ import {
   type DteResult,
 } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
+import {
+  getEmpresa,
+  getCertificateBase64,
+  getCAFXml,
+  consumeFolio,
+  hasCertificate,
+  hasCAF,
+} from "@/lib/client-storage";
 
 const emptyReceptor: Receptor = {
   rut: "",
@@ -69,7 +77,13 @@ const needsReferencia: DteTypeCode[] = [56, 61];
 
 export default function FacturasPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Cargando...</div>}>
+    <Suspense
+      fallback={
+        <div className="p-8 text-center text-muted-foreground">
+          Cargando...
+        </div>
+      }
+    >
       <FacturasContent />
     </Suspense>
   );
@@ -85,6 +99,7 @@ function FacturasContent() {
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<DteResult | null>(null);
   const [showResult, setShowResult] = useState(false);
+
   const [queryTrackId, setQueryTrackId] = useState("");
   const [queryPassword, setQueryPassword] = useState("");
   const [querying, setQuerying] = useState(false);
@@ -102,7 +117,7 @@ function FacturasContent() {
         if (parsed.receptor) setReceptor(parsed.receptor);
         if (parsed.items) setItems(parsed.items);
       } catch {
-        // Invalid data, ignore
+        // ignore
       }
     }
   }, [searchParams]);
@@ -122,6 +137,37 @@ function FacturasContent() {
       return;
     }
 
+    const empresa = getEmpresa();
+    if (!empresa || !empresa.rut) {
+      toast.error(
+        "Debe configurar los datos de la empresa en Configuración"
+      );
+      return;
+    }
+
+    if (!hasCertificate()) {
+      toast.error("Debe cargar su certificado digital en Configuración");
+      return;
+    }
+
+    if (!hasCAF(tipoDte)) {
+      toast.error(
+        `Debe cargar el CAF para ${DTE_TYPES[tipoDte]} en Configuración`
+      );
+      return;
+    }
+
+    const certBase64 = getCertificateBase64();
+    const cafXml = getCAFXml(tipoDte);
+    const folioResult = consumeFolio(tipoDte);
+
+    if (!folioResult) {
+      toast.error(
+        `No hay folios disponibles para ${DTE_TYPES[tipoDte]}. Cargue un nuevo CAF.`
+      );
+      return;
+    }
+
     setSending(true);
     try {
       const res = await fetch("/api/dte/generate", {
@@ -134,7 +180,11 @@ function FacturasContent() {
           referencias: needsReferencia.includes(tipoDte)
             ? referencias
             : undefined,
+          folio: folioResult.folio,
+          certBase64,
           certPassword,
+          cafXml,
+          empresa,
         }),
       });
 
@@ -148,6 +198,12 @@ function FacturasContent() {
       setResult(data);
       setShowResult(true);
       toast.success(`DTE emitido - Folio ${data.folio}`);
+
+      if (folioResult.remaining <= 5) {
+        toast.warning(
+          `Quedan solo ${folioResult.remaining} folios para ${DTE_TYPES[tipoDte]}`
+        );
+      }
     } catch {
       toast.error("Error de conexión");
     } finally {
@@ -161,13 +217,31 @@ function FacturasContent() {
       return;
     }
 
+    const empresa = getEmpresa();
+    if (!empresa) {
+      toast.error("Debe configurar los datos de la empresa");
+      return;
+    }
+
+    const certBase64 = getCertificateBase64();
+    if (!certBase64) {
+      toast.error("Debe cargar su certificado digital");
+      return;
+    }
+
     setQuerying(true);
     try {
-      const params = new URLSearchParams({
-        trackId: queryTrackId,
-        certPassword: queryPassword,
+      const res = await fetch("/api/dte/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          trackId: queryTrackId,
+          certBase64,
+          certPassword: queryPassword,
+          empresa,
+        }),
       });
-      const res = await fetch(`/api/dte/status?${params}`);
+
       const data = await res.json();
 
       if (!res.ok) {
@@ -202,7 +276,9 @@ function FacturasContent() {
         <CardContent>
           <Select
             value={String(tipoDte)}
-            onValueChange={(v) => { if (v) setTipoDte(parseInt(v) as DteTypeCode); }}
+            onValueChange={(v) => {
+              if (v) setTipoDte(parseInt(v) as DteTypeCode);
+            }}
           >
             <SelectTrigger className="max-w-md">
               <SelectValue />
@@ -233,11 +309,7 @@ function FacturasContent() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ReceptorForm
-            receptor={receptor}
-            onChange={setReceptor}
-            showGiro
-          />
+          <ReceptorForm receptor={receptor} onChange={setReceptor} showGiro />
         </CardContent>
       </Card>
 
@@ -249,11 +321,7 @@ function FacturasContent() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ItemsTable
-            items={items}
-            onChange={setItems}
-            showDescuento={false}
-          />
+          <ItemsTable items={items} onChange={setItems} showDescuento={false} />
         </CardContent>
       </Card>
 
@@ -320,7 +388,9 @@ function FacturasContent() {
             className="w-full sm:w-auto"
           >
             <Send className="mr-2 h-4 w-4" />
-            {sending ? "Enviando al SII..." : "Generar, Firmar y Enviar al SII"}
+            {sending
+              ? "Enviando al SII..."
+              : "Generar, Firmar y Enviar al SII"}
           </Button>
         </CardContent>
       </Card>
@@ -372,12 +442,15 @@ function FacturasContent() {
           {queryResult && (
             <div className="mt-4 p-4 rounded-lg border bg-muted/50">
               <div className="flex items-center gap-2 mb-2">
-                {queryResult.estado === "EPR" || queryResult.estado === "DOK" ? (
+                {queryResult.estado === "EPR" ||
+                queryResult.estado === "DOK" ? (
                   <CheckCircle2 className="h-5 w-5 text-green-600" />
                 ) : (
                   <Clock className="h-5 w-5 text-amber-500" />
                 )}
-                <span className="font-bold">Estado: {queryResult.estado}</span>
+                <span className="font-bold">
+                  Estado: {queryResult.estado}
+                </span>
               </div>
               {queryResult.glosa && (
                 <p className="text-sm text-muted-foreground">
