@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,8 +13,16 @@ import {
   TableRow,
   TableFooter,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { formatCurrency } from "@/lib/utils";
-import type { ItemDetalle } from "@/lib/types";
+import { getProductos } from "@/lib/client-storage";
+import type { ItemDetalle, Producto } from "@/lib/types";
 
 interface ItemsTableProps {
   items: ItemDetalle[];
@@ -41,6 +50,12 @@ export function ItemsTable({
   onChange,
   showDescuento = true,
 }: ItemsTableProps) {
+  const [catalogo, setCatalogo] = useState<Producto[]>([]);
+
+  useEffect(() => {
+    setCatalogo(getProductos());
+  }, []);
+
   function addRow() {
     onChange([...items, { ...emptyItem }]);
   }
@@ -49,10 +64,30 @@ export function ItemsTable({
     onChange(items.filter((_, i) => i !== index));
   }
 
-  function updateItem(index: number, field: keyof ItemDetalle, value: string | number) {
+  function updateItem(
+    index: number,
+    field: keyof ItemDetalle,
+    value: string | number
+  ) {
     const updated = items.map((item, i) => {
       if (i !== index) return item;
       const newItem = { ...item, [field]: value };
+      newItem.montoItem = calcMontoItem(newItem);
+      return newItem;
+    });
+    onChange(updated);
+  }
+
+  function selectProducto(index: number, productoId: string) {
+    const prod = catalogo.find((p) => p.id === productoId);
+    if (!prod) return;
+    const updated = items.map((item, i) => {
+      if (i !== index) return item;
+      const newItem = {
+        ...item,
+        nombre: prod.nombre,
+        precioUnitario: prod.precioUnitario,
+      };
       newItem.montoItem = calcMontoItem(newItem);
       return newItem;
     });
@@ -83,19 +118,47 @@ export function ItemsTable({
             {items.map((item, index) => (
               <TableRow key={index}>
                 <TableCell>
-                  <Input
-                    value={item.nombre}
-                    onChange={(e) => updateItem(index, "nombre", e.target.value)}
-                    placeholder="Nombre del producto/servicio"
-                    className="h-9"
-                  />
+                  <div className="flex flex-col gap-1">
+                    {catalogo.length > 0 && (
+                      <Select
+                        value=""
+                        onValueChange={(v) => {
+                          if (v) selectProducto(index, v);
+                        }}
+                      >
+                        <SelectTrigger className="h-7 text-xs text-muted-foreground">
+                          <SelectValue placeholder="Elegir del catálogo..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {catalogo.map((prod) => (
+                            <SelectItem key={prod.id} value={prod.id}>
+                              {prod.nombre} - $
+                              {prod.precioUnitario.toLocaleString("es-CL")}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    <Input
+                      value={item.nombre}
+                      onChange={(e) =>
+                        updateItem(index, "nombre", e.target.value)
+                      }
+                      placeholder="Nombre del producto/servicio"
+                      className="h-9"
+                    />
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Input
                     type="number"
                     value={item.cantidad || ""}
                     onChange={(e) =>
-                      updateItem(index, "cantidad", parseFloat(e.target.value) || 0)
+                      updateItem(
+                        index,
+                        "cantidad",
+                        parseFloat(e.target.value) || 0
+                      )
                     }
                     min={1}
                     className="h-9"
@@ -154,7 +217,10 @@ export function ItemsTable({
           </TableBody>
           <TableFooter>
             <TableRow>
-              <TableCell colSpan={showDescuento ? 4 : 3} className="text-right font-medium">
+              <TableCell
+                colSpan={showDescuento ? 4 : 3}
+                className="text-right font-medium"
+              >
                 Neto
               </TableCell>
               <TableCell className="text-right font-bold">
@@ -163,7 +229,10 @@ export function ItemsTable({
               <TableCell />
             </TableRow>
             <TableRow>
-              <TableCell colSpan={showDescuento ? 4 : 3} className="text-right font-medium">
+              <TableCell
+                colSpan={showDescuento ? 4 : 3}
+                className="text-right font-medium"
+              >
                 IVA (19%)
               </TableCell>
               <TableCell className="text-right font-bold">
@@ -172,7 +241,10 @@ export function ItemsTable({
               <TableCell />
             </TableRow>
             <TableRow>
-              <TableCell colSpan={showDescuento ? 4 : 3} className="text-right font-medium text-lg">
+              <TableCell
+                colSpan={showDescuento ? 4 : 3}
+                className="text-right font-medium text-lg"
+              >
                 Total
               </TableCell>
               <TableCell className="text-right font-bold text-lg">

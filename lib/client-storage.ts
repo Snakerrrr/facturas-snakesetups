@@ -1,9 +1,30 @@
-import type { EmpresaConfig, DteTypeCode, FolioState } from "./types";
+import type {
+  EmpresaConfig,
+  DteTypeCode,
+  FolioState,
+  Producto,
+  ClienteGuardado,
+} from "./types";
+
+const DEFAULT_EMPRESA: EmpresaConfig = {
+  rut: "78.293.834-7",
+  razonSocial: "SNAKE SETUPS SPA",
+  giro: "Venta y Armados de componentes de computadora",
+  actividadEconomica: 474100,
+  direccion: "LAS SALITRERAS 7792",
+  comuna: "RENCA",
+  ciudad: "Santiago",
+  nroResolucion: 99,
+  fechaResolucion: "2014-08-01",
+  ambiente: "certificacion",
+};
 
 const KEYS = {
   empresa: "snk:empresa",
   cert: "snk:cert",
   certName: "snk:cert:name",
+  productos: "snk:productos",
+  clientes: "snk:clientes",
   caf: (tipo: DteTypeCode) => `snk:caf:${tipo}`,
   folio: (tipo: DteTypeCode) => `snk:folio:${tipo}`,
 } as const;
@@ -35,8 +56,12 @@ export function saveEmpresa(config: EmpresaConfig): void {
   set(KEYS.empresa, config);
 }
 
-export function getEmpresa(): EmpresaConfig | null {
-  return get<EmpresaConfig>(KEYS.empresa);
+export function getEmpresa(): EmpresaConfig {
+  return get<EmpresaConfig>(KEYS.empresa) ?? { ...DEFAULT_EMPRESA };
+}
+
+export function isEmpresaSaved(): boolean {
+  return get<EmpresaConfig>(KEYS.empresa) !== null;
 }
 
 // --- Certificado (base64) ---
@@ -65,11 +90,19 @@ export function hasCertificate(): boolean {
 
 // --- CAF ---
 
-export function saveCAF(tipoDte: DteTypeCode, cafXml: string, folioInicio: number, folioFin: number): void {
+export function saveCAF(
+  tipoDte: DteTypeCode,
+  cafXml: string,
+  folioInicio: number,
+  folioFin: number
+): void {
   set(KEYS.caf(tipoDte), cafXml);
   const existing = getFolioState(tipoDte);
   if (!existing) {
-    set(KEYS.folio(tipoDte), { siguiente: folioInicio, maximo: folioFin } satisfies FolioState);
+    set(KEYS.folio(tipoDte), {
+      siguiente: folioInicio,
+      maximo: folioFin,
+    } satisfies FolioState);
   }
 }
 
@@ -87,13 +120,59 @@ export function getFolioState(tipoDte: DteTypeCode): FolioState | null {
   return get<FolioState>(KEYS.folio(tipoDte));
 }
 
-export function consumeFolio(tipoDte: DteTypeCode): { folio: number; remaining: number } | null {
+export function consumeFolio(
+  tipoDte: DteTypeCode
+): { folio: number; remaining: number } | null {
   const state = getFolioState(tipoDte);
   if (!state || state.siguiente > state.maximo) return null;
 
   const folio = state.siguiente;
   set(KEYS.folio(tipoDte), { ...state, siguiente: state.siguiente + 1 });
   return { folio, remaining: state.maximo - folio };
+}
+
+// --- Productos (catálogo) ---
+
+export function getProductos(): Producto[] {
+  return get<Producto[]>(KEYS.productos) ?? [];
+}
+
+export function saveProducto(producto: Producto): void {
+  const list = getProductos();
+  const idx = list.findIndex((p) => p.id === producto.id);
+  if (idx >= 0) {
+    list[idx] = producto;
+  } else {
+    list.push(producto);
+  }
+  set(KEYS.productos, list);
+}
+
+export function deleteProducto(id: string): void {
+  const list = getProductos().filter((p) => p.id !== id);
+  set(KEYS.productos, list);
+}
+
+// --- Clientes guardados ---
+
+export function getClientes(): ClienteGuardado[] {
+  return get<ClienteGuardado[]>(KEYS.clientes) ?? [];
+}
+
+export function saveCliente(cliente: ClienteGuardado): void {
+  const list = getClientes();
+  const idx = list.findIndex((c) => c.id === cliente.id);
+  if (idx >= 0) {
+    list[idx] = cliente;
+  } else {
+    list.push(cliente);
+  }
+  set(KEYS.clientes, list);
+}
+
+export function deleteCliente(id: string): void {
+  const list = getClientes().filter((c) => c.id !== id);
+  set(KEYS.clientes, list);
 }
 
 // --- Utils ---

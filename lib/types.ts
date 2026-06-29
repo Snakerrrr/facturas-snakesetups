@@ -81,3 +81,21 @@ export interface DteResult {
   estado: string;
   xml?: string;
 }
+
+export interface Producto {
+  id: string;
+  nombre: string;
+  precioUnitario: number;
+}
+
+export interface ClienteGuardado {
+  id: string;
+  rut: string;
+  razonSocial: string;
+  giro?: string;
+  direccion?: string;
+  comuna?: string;
+  ciudad?: string;
+  contacto?: string;
+  email?: string;
+}
