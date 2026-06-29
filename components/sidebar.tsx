@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, Receipt, Settings, Menu, X } from "lucide-react";
+import { FileText, Receipt, Settings, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useState } from "react";
 
 const navItems = [
   { href: "/cotizaciones", label: "Cotizaciones", icon: FileText },
@@ -14,7 +13,7 @@ const navItems = [
   { href: "/configuracion", label: "Configuración", icon: Settings },
 ];
 
-function NavLinks({ onClick }: { onClick?: () => void }) {
+function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   return (
     <nav className="flex flex-col gap-1">
@@ -22,7 +21,7 @@ function NavLinks({ onClick }: { onClick?: () => void }) {
         <Link
           key={item.href}
           href={item.href}
-          onClick={onClick}
+          onClick={onNavigate}
           className={cn(
             "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
             pathname === item.href
@@ -39,8 +38,6 @@ function NavLinks({ onClick }: { onClick?: () => void }) {
 }
 
 export function Sidebar() {
-  const [open, setOpen] = useState(false);
-
   return (
     <>
       {/* Desktop */}
@@ -58,20 +55,16 @@ export function Sidebar() {
           <Receipt className="h-5 w-5" />
           <span className="font-bold">SnakeSetups</span>
         </div>
-        <Sheet open={open} onOpenChange={setOpen}>
+        <Sheet>
           <SheetTrigger render={<Button variant="ghost" size="icon" />}>
-            {open ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <Menu className="h-5 w-5" />
-            )}
+            <Menu className="h-5 w-5" />
           </SheetTrigger>
           <SheetContent side="left" className="w-64 p-4">
             <div className="flex items-center gap-2 px-3 py-2 mb-4">
               <Receipt className="h-6 w-6" />
               <span className="text-lg font-bold">SnakeSetups</span>
             </div>
-            <NavLinks onClick={() => setOpen(false)} />
+            <NavLinks />
           </SheetContent>
         </Sheet>
       </header>
