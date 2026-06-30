@@ -4,6 +4,7 @@ import {
   Page,
   Text,
   View,
+  Image,
   StyleSheet,
 } from "@react-pdf/renderer";
 import type { CotizacionFormData, EmpresaConfig } from "../types";
@@ -20,6 +21,20 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     borderBottom: "2px solid #1a1a1a",
     paddingBottom: 15,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  logo: {
+    width: 70,
+    height: 70,
+    objectFit: "contain" as const,
+  },
+  companyBlock: {
+    flex: 1,
   },
   companyName: {
     fontSize: 18,
@@ -166,9 +181,15 @@ interface CotizacionPdfProps {
   data: CotizacionFormData;
   empresa: EmpresaConfig;
   numero: number;
+  logoDataUrl?: string;
 }
 
-export function CotizacionPdf({ data, empresa, numero }: CotizacionPdfProps) {
+export function CotizacionPdf({
+  data,
+  empresa,
+  numero,
+  logoDataUrl,
+}: CotizacionPdfProps) {
   const today = new Date().toLocaleDateString("es-CL");
   const validUntil = new Date(
     Date.now() + data.diasValidez * 24 * 60 * 60 * 1000
@@ -178,13 +199,18 @@ export function CotizacionPdf({ data, empresa, numero }: CotizacionPdfProps) {
     <Document>
       <Page size="LETTER" style={styles.page}>
         <View style={styles.header}>
-          <View>
-            <Text style={styles.companyName}>{empresa.razonSocial}</Text>
-            <Text style={styles.companyInfo}>RUT: {empresa.rut}</Text>
-            <Text style={styles.companyInfo}>{empresa.giro}</Text>
-            <Text style={styles.companyInfo}>
-              {empresa.direccion}, {empresa.comuna}, {empresa.ciudad}
-            </Text>
+          <View style={styles.headerLeft}>
+            {logoDataUrl && (
+              <Image src={logoDataUrl} style={styles.logo} />
+            )}
+            <View style={styles.companyBlock}>
+              <Text style={styles.companyName}>{empresa.razonSocial}</Text>
+              <Text style={styles.companyInfo}>RUT: {empresa.rut}</Text>
+              <Text style={styles.companyInfo}>{empresa.giro}</Text>
+              <Text style={styles.companyInfo}>
+                {empresa.direccion}, {empresa.comuna}, {empresa.ciudad}
+              </Text>
+            </View>
           </View>
           <View style={styles.titleBox}>
             <Text style={styles.titleText}>COTIZACIÓN</Text>

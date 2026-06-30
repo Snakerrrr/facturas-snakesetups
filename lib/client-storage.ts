@@ -21,6 +21,7 @@ const DEFAULT_EMPRESA: EmpresaConfig = {
 
 const KEYS = {
   empresa: "snk:empresa",
+  logo: "snk:logo",
   cert: "snk:cert",
   certName: "snk:cert:name",
   productos: "snk:productos",
@@ -62,6 +63,24 @@ export function getEmpresa(): EmpresaConfig {
 
 export function isEmpresaSaved(): boolean {
   return get<EmpresaConfig>(KEYS.empresa) !== null;
+}
+
+// --- Logo empresa (data URL) ---
+
+export function saveLogo(dataUrl: string): void {
+  set(KEYS.logo, dataUrl);
+}
+
+export function getLogo(): string | null {
+  return get<string>(KEYS.logo);
+}
+
+export function deleteLogo(): void {
+  remove(KEYS.logo);
+}
+
+export function hasLogo(): boolean {
+  return getLogo() !== null;
 }
 
 // --- Certificado (base64) ---

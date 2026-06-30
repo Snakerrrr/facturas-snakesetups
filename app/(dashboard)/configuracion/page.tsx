@@ -27,6 +27,9 @@ import { DTE_TYPES, type EmpresaConfig, type Producto } from "@/lib/types";
 import {
   saveEmpresa,
   getEmpresa,
+  saveLogo,
+  getLogo,
+  deleteLogo,
   saveCertificate,
   getCertificateName,
   hasCertificate,
@@ -48,11 +51,13 @@ export default function ConfiguracionPage() {
   >({});
   const [productos, setProductos] = useState<Producto[]>([]);
   const [newProd, setNewProd] = useState({ nombre: "", precio: "" });
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   useEffect(() => {
     setCertLoaded(hasCertificate());
     setCertName(getCertificateName());
     setProductos(getProductos());
+    setLogoPreview(getLogo());
 
     const statuses: Record<
       string,
@@ -136,6 +141,25 @@ export default function ConfiguracionPage() {
     toast.success("Producto eliminado");
   }
 
+  function handleUploadLogo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      saveLogo(dataUrl);
+      setLogoPreview(dataUrl);
+      toast.success("Logo guardado");
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function handleDeleteLogo() {
+    deleteLogo();
+    setLogoPreview(null);
+    toast.success("Logo eliminado");
+  }
+
   function updateEmpresa(field: keyof EmpresaConfig, value: string | number) {
     setEmpresa((prev) => ({ ...prev, [field]: value }));
   }
@@ -167,6 +191,34 @@ export default function ConfiguracionPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Logo de la Empresa</Label>
+                <div className="flex items-center gap-4">
+                  {logoPreview ? (
+                    <div className="flex items-center gap-4">
+                      <img src={logoPreview} alt="Logo" className="h-16 w-16 object-contain rounded-lg border" />
+                      <div className="flex gap-2">
+                        <label className="cursor-pointer">
+                          <Input type="file" accept="image/*" onChange={handleUploadLogo} className="hidden" />
+                          <span className="text-sm text-primary hover:underline">Cambiar</span>
+                        </label>
+                        <button onClick={handleDeleteLogo} className="text-sm text-destructive hover:underline">Eliminar</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-4">
+                      <div className="h-16 w-16 rounded-lg border-2 border-dashed flex items-center justify-center">
+                        <Upload className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <Input type="file" accept="image/*" onChange={handleUploadLogo} className="max-w-xs" />
+                        <p className="text-xs text-muted-foreground mt-1">Aparecerá en el membrete de las cotizaciones PDF</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <Separator />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="rut">RUT Empresa</Label>

@@ -6,7 +6,7 @@ import type { EmpresaConfig } from "@/lib/types";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { receptor, items, observaciones, diasValidez, empresa } = body;
+  const { receptor, items, observaciones, diasValidez, empresa, logoDataUrl } = body;
 
   if (!empresa || !empresa.rut) {
     return NextResponse.json(
@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
       data: cotizacionData,
       empresa: empresa as EmpresaConfig,
       numero,
+      logoDataUrl: logoDataUrl || undefined,
     }) as React.ReactElement<
       React.ComponentProps<typeof import("@react-pdf/renderer").Document>
     >

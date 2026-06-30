@@ -19,7 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { ItemsTable } from "@/components/items-table";
 import { ReceptorForm } from "@/components/receptor-form";
 import type { Receptor, ItemDetalle } from "@/lib/types";
-import { getEmpresa } from "@/lib/client-storage";
+import { getEmpresa, getLogo } from "@/lib/client-storage";
 
 const emptyReceptor: Receptor = {
   rut: "",
@@ -61,6 +61,7 @@ export default function CotizacionesPage() {
           observaciones,
           diasValidez,
           empresa,
+          logoDataUrl: getLogo(),
         }),
       });
 
