@@ -30,6 +30,7 @@ import {
   saveLogo,
   getLogo,
   deleteLogo,
+  resizeImage,
   saveCertificate,
   getCertificateName,
   hasCertificate,
@@ -141,17 +142,17 @@ export default function ConfiguracionPage() {
     toast.success("Producto eliminado");
   }
 
-  function handleUploadLogo(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleUploadLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
+    try {
+      const dataUrl = await resizeImage(file, 300);
       saveLogo(dataUrl);
       setLogoPreview(dataUrl);
       toast.success("Logo guardado");
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al guardar logo");
+    }
   }
 
   function handleDeleteLogo() {

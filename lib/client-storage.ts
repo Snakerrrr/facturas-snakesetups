@@ -43,7 +43,11 @@ function get<T>(key: string): T | null {
 
 function set(key: string, value: unknown): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(key, JSON.stringify(value));
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {
+    console.error("localStorage set failed:", key, e);
+  }
 }
 
 function remove(key: string): void {
@@ -68,15 +72,54 @@ export function isEmpresaSaved(): boolean {
 // --- Logo empresa (data URL) ---
 
 export function saveLogo(dataUrl: string): void {
-  set(KEYS.logo, dataUrl);
+  try {
+    localStorage.setItem(KEYS.logo, dataUrl);
+  } catch (e) {
+    console.error("Logo too large for localStorage:", e);
+    throw new Error("La imagen es demasiado grande. Use una imagen más pequeña (max ~500KB).");
+  }
 }
 
 export function getLogo(): string | null {
-  return get<string>(KEYS.logo);
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(KEYS.logo) || null;
 }
 
 export function deleteLogo(): void {
-  remove(KEYS.logo);
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(KEYS.logo);
+}
+
+export function resizeImage(file: File, maxSize: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    const reader = new FileReader();
+    reader.onload = () => {
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let w = img.width;
+        let h = img.height;
+        if (w > maxSize || h > maxSize) {
+          if (w > h) {
+            h = Math.round((h * maxSize) / w);
+            w = maxSize;
+          } else {
+            w = Math.round((w * maxSize) / h);
+            h = maxSize;
+          }
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/png", 0.9));
+      };
+      img.onerror = reject;
+      img.src = reader.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 export function hasLogo(): boolean {
