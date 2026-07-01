@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Check, Settings } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { AlertTriangle, Check, ChevronRight } from "lucide-react";
 import {
   isEmpresaSaved,
   hasCertificate,
@@ -14,7 +12,6 @@ import {
 interface CheckItem {
   label: string;
   done: boolean;
-  tab: string;
 }
 
 export function SetupBanner() {
@@ -22,9 +19,9 @@ export function SetupBanner() {
 
   useEffect(() => {
     setChecks([
-      { label: "Datos de empresa", done: isEmpresaSaved(), tab: "empresa" },
-      { label: "Certificado digital (.pfx)", done: hasCertificate(), tab: "certificado" },
-      { label: "CAF Factura Electrónica (tipo 33)", done: hasCAF(33), tab: "folios" },
+      { label: "Datos de empresa", done: isEmpresaSaved() },
+      { label: "Certificado digital", done: hasCertificate() },
+      { label: "CAF Factura (tipo 33)", done: hasCAF(33) },
     ]);
   }, []);
 
@@ -36,35 +33,30 @@ export function SetupBanner() {
   const pending = checks.filter((c) => !c.done).length;
 
   return (
-    <Card className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 mb-6">
-      <CardContent className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4">
-        <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-        <div className="flex-1 space-y-2">
-          <p className="font-medium text-amber-900 dark:text-amber-200">
+    <Link href="/configuracion" className="block mb-4 sm:mb-6">
+      <div className="flex items-center gap-3 p-3 sm:p-4 rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-colors">
+        <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
             Faltan {pending} paso{pending > 1 ? "s" : ""} para emitir facturas
           </p>
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
             {checks.map((item) => (
-              <div key={item.label} className="flex items-center gap-2 text-sm">
+              <span key={item.label} className="flex items-center gap-1 text-xs">
                 {item.done ? (
-                  <Check className="h-4 w-4 text-green-600" />
+                  <Check className="h-3 w-3 text-green-600" />
                 ) : (
-                  <div className="h-4 w-4 rounded-full border-2 border-amber-400" />
+                  <span className="h-3 w-3 rounded-full border-[1.5px] border-amber-400 inline-block" />
                 )}
                 <span className={item.done ? "text-muted-foreground line-through" : "text-amber-800 dark:text-amber-300"}>
                   {item.label}
                 </span>
-              </div>
+              </span>
             ))}
           </div>
         </div>
-        <Link href="/configuracion">
-          <Button variant="outline" size="sm">
-            <Settings className="mr-2 h-4 w-4" />
-            Ir a Configuración
-          </Button>
-        </Link>
-      </CardContent>
-    </Card>
+        <ChevronRight className="h-4 w-4 text-amber-600 shrink-0" />
+      </div>
+    </Link>
   );
 }

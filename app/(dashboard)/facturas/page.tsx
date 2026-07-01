@@ -79,9 +79,7 @@ export default function FacturasPage() {
   return (
     <Suspense
       fallback={
-        <div className="p-8 text-center text-muted-foreground">
-          Cargando...
-        </div>
+        <div className="p-8 text-center text-muted-foreground">Cargando...</div>
       }
     >
       <FacturasContent />
@@ -117,7 +115,7 @@ function FacturasContent() {
         if (parsed.receptor) setReceptor(parsed.receptor);
         if (parsed.items) setItems(parsed.items);
       } catch {
-        // ignore
+        /* ignore */
       }
     }
   }, [searchParams]);
@@ -136,24 +134,17 @@ function FacturasContent() {
       toast.error("Ingrese la contraseña del certificado");
       return;
     }
-
     const empresa = getEmpresa();
     if (!empresa || !empresa.rut) {
-      toast.error(
-        "Debe configurar los datos de la empresa en Configuración"
-      );
+      toast.error("Configure los datos de la empresa primero");
       return;
     }
-
     if (!hasCertificate()) {
-      toast.error("Debe cargar su certificado digital en Configuración");
+      toast.error("Cargue su certificado digital en Configuración");
       return;
     }
-
     if (!hasCAF(tipoDte)) {
-      toast.error(
-        `Debe cargar el CAF para ${DTE_TYPES[tipoDte]} en Configuración`
-      );
+      toast.error(`Cargue el CAF para ${DTE_TYPES[tipoDte]} en Configuración`);
       return;
     }
 
@@ -162,9 +153,7 @@ function FacturasContent() {
     const folioResult = consumeFolio(tipoDte);
 
     if (!folioResult) {
-      toast.error(
-        `No hay folios disponibles para ${DTE_TYPES[tipoDte]}. Cargue un nuevo CAF.`
-      );
+      toast.error(`Sin folios para ${DTE_TYPES[tipoDte]}. Cargue un nuevo CAF.`);
       return;
     }
 
@@ -177,9 +166,7 @@ function FacturasContent() {
           tipoDte,
           receptor,
           items,
-          referencias: needsReferencia.includes(tipoDte)
-            ? referencias
-            : undefined,
+          referencias: needsReferencia.includes(tipoDte) ? referencias : undefined,
           folio: folioResult.folio,
           certBase64,
           certPassword,
@@ -187,22 +174,16 @@ function FacturasContent() {
           empresa,
         }),
       });
-
       const data = await res.json();
-
       if (!res.ok) {
         toast.error(data.error || "Error al emitir DTE");
         return;
       }
-
       setResult(data);
       setShowResult(true);
       toast.success(`DTE emitido - Folio ${data.folio}`);
-
       if (folioResult.remaining <= 5) {
-        toast.warning(
-          `Quedan solo ${folioResult.remaining} folios para ${DTE_TYPES[tipoDte]}`
-        );
+        toast.warning(`Quedan solo ${folioResult.remaining} folios para ${DTE_TYPES[tipoDte]}`);
       }
     } catch {
       toast.error("Error de conexión");
@@ -216,16 +197,14 @@ function FacturasContent() {
       toast.error("Ingrese TrackID y contraseña del certificado");
       return;
     }
-
     const empresa = getEmpresa();
     if (!empresa) {
-      toast.error("Debe configurar los datos de la empresa");
+      toast.error("Configure los datos de la empresa");
       return;
     }
-
     const certBase64 = getCertificateBase64();
     if (!certBase64) {
-      toast.error("Debe cargar su certificado digital");
+      toast.error("Cargue su certificado digital");
       return;
     }
 
@@ -241,14 +220,11 @@ function FacturasContent() {
           empresa,
         }),
       });
-
       const data = await res.json();
-
       if (!res.ok) {
         toast.error(data.error || "Error al consultar");
         return;
       }
-
       setQueryResult(data);
     } catch {
       toast.error("Error de conexión");
@@ -258,20 +234,20 @@ function FacturasContent() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Receipt className="h-6 w-6" />
-          Emisión de Factura Electrónica
+        <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+          <Receipt className="h-5 w-5 sm:h-6 sm:w-6" />
+          Factura Electrónica
         </h1>
-        <p className="text-muted-foreground">
-          Genere, firme y envíe documentos tributarios al SII.
+        <p className="text-sm text-muted-foreground mt-1">
+          Genere, firme y envíe documentos al SII.
         </p>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Tipo de Documento</CardTitle>
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="text-base sm:text-lg">Tipo de Documento</CardTitle>
         </CardHeader>
         <CardContent>
           <Select
@@ -280,19 +256,17 @@ function FacturasContent() {
               if (v) setTipoDte(parseInt(v) as DteTypeCode);
             }}
           >
-            <SelectTrigger className="max-w-md">
+            <SelectTrigger className="w-full sm:max-w-md">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {(Object.entries(DTE_TYPES) as [string, string][]).map(
                 ([code, name]) => (
                   <SelectItem key={code} value={code}>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="font-mono">
-                        {code}
-                      </Badge>
-                      {name}
-                    </div>
+                    <span className="flex items-center gap-2">
+                      <Badge variant="secondary" className="font-mono shrink-0">{code}</Badge>
+                      <span className="truncate">{name}</span>
+                    </span>
                   </SelectItem>
                 )
               )}
@@ -302,9 +276,9 @@ function FacturasContent() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Datos del Receptor</CardTitle>
-          <CardDescription>
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="text-base sm:text-lg">Datos del Receptor</CardTitle>
+          <CardDescription className="hidden sm:block">
             Información del cliente o destinatario del documento.
           </CardDescription>
         </CardHeader>
@@ -314,11 +288,8 @@ function FacturasContent() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Detalle</CardTitle>
-          <CardDescription>
-            Items del documento. Los montos se calculan automáticamente.
-          </CardDescription>
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="text-base sm:text-lg">Detalle</CardTitle>
         </CardHeader>
         <CardContent>
           <ItemsTable items={items} onChange={setItems} showDescuento={false} />
@@ -327,50 +298,46 @@ function FacturasContent() {
 
       {needsReferencia.includes(tipoDte) && (
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
+          <CardHeader className="pb-3 sm:pb-6">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />
               Referencias
             </CardTitle>
             <CardDescription>
-              Las Notas de Crédito y Débito requieren referencia al documento
-              original.
+              Requerido para Notas de Crédito y Débito.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ReferenciasForm
-              referencias={referencias}
-              onChange={setReferencias}
-            />
+            <ReferenciasForm referencias={referencias} onChange={setReferencias} />
           </CardContent>
         </Card>
       )}
 
       <Card>
-        <CardHeader>
-          <CardTitle>Resumen y Firma</CardTitle>
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="text-base sm:text-lg">Resumen y Firma</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-lg bg-muted/50">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 p-3 sm:p-4 rounded-lg bg-muted/50">
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">Neto</p>
-              <p className="text-lg font-bold">{formatCurrency(neto)}</p>
+              <p className="text-[11px] sm:text-sm text-muted-foreground">Neto</p>
+              <p className="text-sm sm:text-lg font-bold">{formatCurrency(neto)}</p>
             </div>
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-[11px] sm:text-sm text-muted-foreground">
                 IVA {isExenta ? "(Exento)" : "(19%)"}
               </p>
-              <p className="text-lg font-bold">{formatCurrency(iva)}</p>
+              <p className="text-sm sm:text-lg font-bold">{formatCurrency(iva)}</p>
             </div>
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">Total</p>
-              <p className="text-2xl font-bold">{formatCurrency(total)}</p>
+              <p className="text-[11px] sm:text-sm text-muted-foreground">Total</p>
+              <p className="text-base sm:text-2xl font-bold">{formatCurrency(total)}</p>
             </div>
           </div>
 
           <Separator />
 
-          <div className="max-w-sm space-y-2">
+          <div className="space-y-2">
             <Label htmlFor="certPassword">Contraseña del Certificado</Label>
             <Input
               id="certPassword"
@@ -378,6 +345,7 @@ function FacturasContent() {
               value={certPassword}
               onChange={(e) => setCertPassword(e.target.value)}
               placeholder="Contraseña de su .pfx/.p12"
+              className="sm:max-w-sm"
             />
           </div>
 
@@ -388,9 +356,7 @@ function FacturasContent() {
             className="w-full sm:w-auto"
           >
             <Send className="mr-2 h-4 w-4" />
-            {sending
-              ? "Enviando al SII..."
-              : "Generar, Firmar y Enviar al SII"}
+            {sending ? "Enviando al SII..." : "Firmar y Enviar al SII"}
           </Button>
         </CardContent>
       </Card>
@@ -398,18 +364,17 @@ function FacturasContent() {
       <Separator />
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Consultar Estado de Envío
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+            <Search className="h-4 w-4 sm:h-5 sm:w-5" />
+            Consultar Estado
           </CardTitle>
-          <CardDescription>
-            Ingrese el TrackID de un envío previo para verificar su estado en el
-            SII.
+          <CardDescription className="hidden sm:block">
+            Ingrese el TrackID para verificar el estado en el SII.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="queryTrackId">TrackID</Label>
               <Input
@@ -426,36 +391,27 @@ function FacturasContent() {
                 type="password"
                 value={queryPassword}
                 onChange={(e) => setQueryPassword(e.target.value)}
-                placeholder="Contraseña de su .pfx/.p12"
+                placeholder="Contraseña .pfx/.p12"
               />
             </div>
           </div>
-          <Button
-            variant="outline"
-            onClick={consultarEstado}
-            disabled={querying}
-          >
+          <Button variant="outline" onClick={consultarEstado} disabled={querying} className="w-full sm:w-auto">
             <Search className="mr-2 h-4 w-4" />
             {querying ? "Consultando..." : "Consultar Estado"}
           </Button>
 
           {queryResult && (
-            <div className="mt-4 p-4 rounded-lg border bg-muted/50">
-              <div className="flex items-center gap-2 mb-2">
-                {queryResult.estado === "EPR" ||
-                queryResult.estado === "DOK" ? (
+            <div className="p-3 sm:p-4 rounded-lg border bg-muted/50">
+              <div className="flex items-center gap-2 mb-1">
+                {queryResult.estado === "EPR" || queryResult.estado === "DOK" ? (
                   <CheckCircle2 className="h-5 w-5 text-green-600" />
                 ) : (
                   <Clock className="h-5 w-5 text-amber-500" />
                 )}
-                <span className="font-bold">
-                  Estado: {queryResult.estado}
-                </span>
+                <span className="font-bold">Estado: {queryResult.estado}</span>
               </div>
               {queryResult.glosa && (
-                <p className="text-sm text-muted-foreground">
-                  {queryResult.glosa}
-                </p>
+                <p className="text-sm text-muted-foreground">{queryResult.glosa}</p>
               )}
             </div>
           )}
@@ -467,27 +423,24 @@ function FacturasContent() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-600" />
-              DTE Enviado al SII
+              DTE Enviado
             </DialogTitle>
-            <DialogDescription>
-              El documento fue generado, firmado y enviado correctamente.
-            </DialogDescription>
+            <DialogDescription>Documento generado, firmado y enviado al SII.</DialogDescription>
           </DialogHeader>
           {result && (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <span className="font-medium">Tipo:</span>
-                <span>{DTE_TYPES[result.tipoDte]}</span>
+                <span className="truncate">{DTE_TYPES[result.tipoDte]}</span>
                 <span className="font-medium">Folio:</span>
                 <span className="font-mono">{result.folio}</span>
                 <span className="font-medium">TrackID:</span>
-                <span className="font-mono">{result.trackId}</span>
+                <span className="font-mono break-all">{result.trackId}</span>
                 <span className="font-medium">Estado:</span>
                 <Badge variant="secondary">{result.estado}</Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                Guarde el TrackID para consultar el estado del envío
-                posteriormente.
+                Guarde el TrackID para consultar el estado posteriormente.
               </p>
             </div>
           )}

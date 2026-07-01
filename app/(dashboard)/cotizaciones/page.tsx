@@ -15,7 +15,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { ItemsTable } from "@/components/items-table";
 import { ReceptorForm } from "@/components/receptor-form";
 import type { Receptor, ItemDetalle } from "@/lib/types";
@@ -97,21 +96,21 @@ export default function CotizacionesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <FileText className="h-6 w-6" />
+        <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+          <FileText className="h-5 w-5 sm:h-6 sm:w-6" />
           Nueva Cotización
         </h1>
-        <p className="text-muted-foreground">
-          Arme su cotización rápidamente y descárguela como PDF.
+        <p className="text-sm text-muted-foreground mt-1">
+          Arme su cotización y descárguela como PDF.
         </p>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Datos del Cliente</CardTitle>
-          <CardDescription>
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="text-base sm:text-lg">Datos del Cliente</CardTitle>
+          <CardDescription className="hidden sm:block">
             Información del destinatario de la cotización.
           </CardDescription>
         </CardHeader>
@@ -121,11 +120,10 @@ export default function CotizacionesPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Detalle de Productos / Servicios</CardTitle>
-          <CardDescription>
-            Agregue los items con sus cantidades y precios. Los totales se
-            calculan automáticamente.
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="text-base sm:text-lg">Productos / Servicios</CardTitle>
+          <CardDescription className="hidden sm:block">
+            Agregue los items con sus cantidades y precios.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -134,21 +132,20 @@ export default function CotizacionesPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Información Adicional</CardTitle>
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="text-base sm:text-lg">Información Adicional</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="diasValidez">Días de Validez</Label>
-              <Input
-                id="diasValidez"
-                type="number"
-                value={diasValidez}
-                onChange={(e) => setDiasValidez(parseInt(e.target.value) || 30)}
-                min={1}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="diasValidez">Días de Validez</Label>
+            <Input
+              id="diasValidez"
+              type="number"
+              value={diasValidez}
+              onChange={(e) => setDiasValidez(parseInt(e.target.value) || 30)}
+              min={1}
+              className="max-w-[120px]"
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="observaciones">Observaciones</Label>
@@ -163,21 +160,23 @@ export default function CotizacionesPage() {
         </CardContent>
       </Card>
 
-      <Separator />
-
-      <div className="flex flex-col sm:flex-row gap-3 justify-end">
-        <Button
-          variant="outline"
-          onClick={convertirAFactura}
-          disabled={items.every((i) => !i.nombre)}
-        >
-          <ArrowRight className="mr-2 h-4 w-4" />
-          Convertir a Factura
-        </Button>
-        <Button onClick={downloadPdf} disabled={generating}>
-          <Download className="mr-2 h-4 w-4" />
-          {generating ? "Generando..." : "Descargar PDF"}
-        </Button>
+      {/* Actions: sticky on mobile */}
+      <div className="sticky bottom-16 md:bottom-0 z-40 -mx-4 sm:-mx-6 md:mx-0 px-4 sm:px-6 md:px-0 py-3 md:py-0 bg-background/80 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none border-t md:border-0">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-end">
+          <Button
+            variant="outline"
+            onClick={convertirAFactura}
+            disabled={items.every((i) => !i.nombre)}
+            className="w-full sm:w-auto"
+          >
+            <ArrowRight className="mr-2 h-4 w-4" />
+            Convertir a Factura
+          </Button>
+          <Button onClick={downloadPdf} disabled={generating} className="w-full sm:w-auto">
+            <Download className="mr-2 h-4 w-4" />
+            {generating ? "Generando..." : "Descargar PDF"}
+          </Button>
+        </div>
       </div>
     </div>
   );

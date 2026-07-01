@@ -166,20 +166,20 @@ export default function ConfiguracionPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Configuración</h1>
-        <p className="text-muted-foreground">
-          Los datos se guardan localmente en su navegador.
+        <h1 className="text-xl sm:text-2xl font-bold">Configuración</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Los datos se guardan en su navegador.
         </p>
       </div>
 
       <Tabs defaultValue="empresa">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="empresa">Empresa</TabsTrigger>
-          <TabsTrigger value="certificado">Certificado</TabsTrigger>
-          <TabsTrigger value="folios">Folios CAF</TabsTrigger>
-          <TabsTrigger value="productos">Productos</TabsTrigger>
+        <TabsList className="w-full grid grid-cols-4 h-auto">
+          <TabsTrigger value="empresa" className="text-xs sm:text-sm px-1 sm:px-3 py-2">Empresa</TabsTrigger>
+          <TabsTrigger value="certificado" className="text-xs sm:text-sm px-1 sm:px-3 py-2">Certificado</TabsTrigger>
+          <TabsTrigger value="folios" className="text-xs sm:text-sm px-1 sm:px-3 py-2">Folios</TabsTrigger>
+          <TabsTrigger value="productos" className="text-xs sm:text-sm px-1 sm:px-3 py-2">Productos</TabsTrigger>
         </TabsList>
 
         {/* --- EMPRESA --- */}

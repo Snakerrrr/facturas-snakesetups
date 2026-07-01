@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -100,7 +101,104 @@ export function ItemsTable({
 
   return (
     <div className="space-y-3">
-      <div className="rounded-lg border overflow-x-auto">
+      {/* Mobile: card layout */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {items.map((item, index) => (
+          <div key={index} className="rounded-lg border p-3 space-y-3 relative">
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-xs font-medium text-muted-foreground">
+                Item {index + 1}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-destructive -mt-1 -mr-1"
+                onClick={() => removeRow(index)}
+                disabled={items.length === 1}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+
+            {catalogo.length > 0 && (
+              <Select
+                value=""
+                onValueChange={(v) => {
+                  if (v) selectProducto(index, v);
+                }}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <Package className="h-3 w-3 mr-1.5 shrink-0" />
+                  <SelectValue placeholder="Elegir del catálogo..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {catalogo.map((prod) => (
+                    <SelectItem key={prod.id} value={prod.id}>
+                      {prod.nombre} - ${prod.precioUnitario.toLocaleString("es-CL")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            <Input
+              value={item.nombre}
+              onChange={(e) => updateItem(index, "nombre", e.target.value)}
+              placeholder="Nombre del producto/servicio"
+            />
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Cantidad</Label>
+                <Input
+                  type="number"
+                  value={item.cantidad || ""}
+                  onChange={(e) =>
+                    updateItem(index, "cantidad", parseFloat(e.target.value) || 0)
+                  }
+                  min={1}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Precio Unit.</Label>
+                <Input
+                  type="number"
+                  value={item.precioUnitario || ""}
+                  onChange={(e) =>
+                    updateItem(index, "precioUnitario", parseInt(e.target.value) || 0)
+                  }
+                  min={0}
+                />
+              </div>
+            </div>
+
+            {showDescuento && (
+              <div className="w-1/2 space-y-1">
+                <Label className="text-xs">Descuento %</Label>
+                <Input
+                  type="number"
+                  value={item.descuentoPct || ""}
+                  onChange={(e) =>
+                    updateItem(index, "descuentoPct", parseFloat(e.target.value) || 0)
+                  }
+                  min={0}
+                  max={100}
+                />
+              </div>
+            )}
+
+            <div className="flex justify-end pt-1 border-t">
+              <span className="font-bold text-sm">
+                {formatCurrency(item.montoItem)}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: table layout */}
+      <div className="hidden md:block rounded-lg border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -154,11 +252,7 @@ export function ItemsTable({
                     type="number"
                     value={item.cantidad || ""}
                     onChange={(e) =>
-                      updateItem(
-                        index,
-                        "cantidad",
-                        parseFloat(e.target.value) || 0
-                      )
+                      updateItem(index, "cantidad", parseFloat(e.target.value) || 0)
                     }
                     min={1}
                     className="h-9"
@@ -169,11 +263,7 @@ export function ItemsTable({
                     type="number"
                     value={item.precioUnitario || ""}
                     onChange={(e) =>
-                      updateItem(
-                        index,
-                        "precioUnitario",
-                        parseInt(e.target.value) || 0
-                      )
+                      updateItem(index, "precioUnitario", parseInt(e.target.value) || 0)
                     }
                     min={0}
                     className="h-9"
@@ -185,11 +275,7 @@ export function ItemsTable({
                       type="number"
                       value={item.descuentoPct || ""}
                       onChange={(e) =>
-                        updateItem(
-                          index,
-                          "descuentoPct",
-                          parseFloat(e.target.value) || 0
-                        )
+                        updateItem(index, "descuentoPct", parseFloat(e.target.value) || 0)
                       }
                       min={0}
                       max={100}
@@ -217,45 +303,41 @@ export function ItemsTable({
           </TableBody>
           <TableFooter>
             <TableRow>
-              <TableCell
-                colSpan={showDescuento ? 4 : 3}
-                className="text-right font-medium"
-              >
-                Neto
-              </TableCell>
-              <TableCell className="text-right font-bold">
-                {formatCurrency(neto)}
-              </TableCell>
+              <TableCell colSpan={showDescuento ? 4 : 3} className="text-right font-medium">Neto</TableCell>
+              <TableCell className="text-right font-bold">{formatCurrency(neto)}</TableCell>
               <TableCell />
             </TableRow>
             <TableRow>
-              <TableCell
-                colSpan={showDescuento ? 4 : 3}
-                className="text-right font-medium"
-              >
-                IVA (19%)
-              </TableCell>
-              <TableCell className="text-right font-bold">
-                {formatCurrency(iva)}
-              </TableCell>
+              <TableCell colSpan={showDescuento ? 4 : 3} className="text-right font-medium">IVA (19%)</TableCell>
+              <TableCell className="text-right font-bold">{formatCurrency(iva)}</TableCell>
               <TableCell />
             </TableRow>
             <TableRow>
-              <TableCell
-                colSpan={showDescuento ? 4 : 3}
-                className="text-right font-medium text-lg"
-              >
-                Total
-              </TableCell>
-              <TableCell className="text-right font-bold text-lg">
-                {formatCurrency(total)}
-              </TableCell>
+              <TableCell colSpan={showDescuento ? 4 : 3} className="text-right font-medium text-lg">Total</TableCell>
+              <TableCell className="text-right font-bold text-lg">{formatCurrency(total)}</TableCell>
               <TableCell />
             </TableRow>
           </TableFooter>
         </Table>
       </div>
-      <Button type="button" variant="outline" size="sm" onClick={addRow}>
+
+      {/* Mobile totals */}
+      <div className="md:hidden rounded-lg border p-3 bg-muted/30 space-y-1">
+        <div className="flex justify-between text-sm">
+          <span className="text-muted-foreground">Neto</span>
+          <span className="font-medium">{formatCurrency(neto)}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-muted-foreground">IVA (19%)</span>
+          <span className="font-medium">{formatCurrency(iva)}</span>
+        </div>
+        <div className="flex justify-between text-base pt-1 border-t">
+          <span className="font-bold">Total</span>
+          <span className="font-bold">{formatCurrency(total)}</span>
+        </div>
+      </div>
+
+      <Button type="button" variant="outline" size="sm" onClick={addRow} className="w-full md:w-auto">
         <Plus className="mr-2 h-4 w-4" />
         Agregar Item
       </Button>
