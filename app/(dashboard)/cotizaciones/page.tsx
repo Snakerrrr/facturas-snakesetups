@@ -24,6 +24,7 @@ import {
   getDraft,
   clearDraft,
   addHistorial,
+  getNextCotizacionNumber,
 } from "@/lib/client-storage";
 
 const emptyReceptor: Receptor = {
@@ -134,9 +135,11 @@ export default function CotizacionesPage() {
       if (!blob) return;
 
       const neto = items.reduce((s, i) => s + i.montoItem, 0);
+      const cotizNum = getNextCotizacionNumber();
       addHistorial({
         id: crypto.randomUUID(),
         tipo: "cotizacion",
+        numero: cotizNum,
         clienteRut: receptor.rut,
         clienteNombre: receptor.razonSocial,
         montoTotal: neto + Math.round(neto * 0.19),

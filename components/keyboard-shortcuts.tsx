@@ -33,12 +33,24 @@ export function KeyboardShortcuts() {
             e.preventDefault();
             router.push("/configuracion");
             break;
+          case "5":
+            e.preventDefault();
+            router.push("/historial");
+            break;
+          case "6":
+            e.preventDefault();
+            router.push("/clientes");
+            break;
+          case "7":
+            e.preventDefault();
+            router.push("/resumen");
+            break;
           case "k":
             if (!isInput) {
               e.preventDefault();
               toast.info(
-                "Atajos: Ctrl+1 Dashboard, Ctrl+2 Cotizaciones, Ctrl+3 Facturas, Ctrl+4 Config",
-                { duration: 4000 }
+                "Ctrl+1 Dashboard, Ctrl+2 Cotiz., Ctrl+3 Facturas, Ctrl+4 Config, Ctrl+5 Historial, Ctrl+6 Clientes, Ctrl+7 Resumen",
+                { duration: 5000 }
               );
             }
             break;

@@ -26,6 +26,9 @@ const KEYS = {
   certName: "snk:cert:name",
   productos: "snk:productos",
   clientes: "snk:clientes",
+  cotizNum: "snk:cotiz:num",
+  theme: "snk:theme",
+  onboarded: "snk:onboarded",
   caf: (tipo: DteTypeCode) => `snk:caf:${tipo}`,
   folio: (tipo: DteTypeCode) => `snk:folio:${tipo}`,
 } as const;
@@ -76,7 +79,7 @@ export function saveLogo(dataUrl: string): void {
     localStorage.setItem(KEYS.logo, dataUrl);
   } catch (e) {
     console.error("Logo too large for localStorage:", e);
-    throw new Error("La imagen es demasiado grande. Use una imagen más pequeña (max ~500KB).");
+    throw new Error("La imagen es demasiado grande. Use una más pequeña (max ~500KB).");
   }
 }
 
@@ -100,18 +103,12 @@ export function resizeImage(file: File, maxSize: number): Promise<string> {
         let w = img.width;
         let h = img.height;
         if (w > maxSize || h > maxSize) {
-          if (w > h) {
-            h = Math.round((h * maxSize) / w);
-            w = maxSize;
-          } else {
-            w = Math.round((w * maxSize) / h);
-            h = maxSize;
-          }
+          if (w > h) { h = Math.round((h * maxSize) / w); w = maxSize; }
+          else { w = Math.round((w * maxSize) / h); h = maxSize; }
         }
         canvas.width = w;
         canvas.height = h;
-        const ctx = canvas.getContext("2d")!;
-        ctx.drawImage(img, 0, 0, w, h);
+        canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
         resolve(canvas.toDataURL("image/png", 0.9));
       };
       img.onerror = reject;
@@ -122,9 +119,7 @@ export function resizeImage(file: File, maxSize: number): Promise<string> {
   });
 }
 
-export function hasLogo(): boolean {
-  return getLogo() !== null;
-}
+export function hasLogo(): boolean { return getLogo() !== null; }
 
 // --- Certificado (base64) ---
 
@@ -132,49 +127,22 @@ export function saveCertificate(base64: string, fileName: string): void {
   set(KEYS.cert, base64);
   set(KEYS.certName, fileName);
 }
-
-export function getCertificateBase64(): string | null {
-  return get<string>(KEYS.cert);
-}
-
-export function getCertificateName(): string | null {
-  return get<string>(KEYS.certName);
-}
-
-export function deleteCertificate(): void {
-  remove(KEYS.cert);
-  remove(KEYS.certName);
-}
-
-export function hasCertificate(): boolean {
-  return getCertificateBase64() !== null;
-}
+export function getCertificateBase64(): string | null { return get<string>(KEYS.cert); }
+export function getCertificateName(): string | null { return get<string>(KEYS.certName); }
+export function deleteCertificate(): void { remove(KEYS.cert); remove(KEYS.certName); }
+export function hasCertificate(): boolean { return getCertificateBase64() !== null; }
 
 // --- CAF ---
 
-export function saveCAF(
-  tipoDte: DteTypeCode,
-  cafXml: string,
-  folioInicio: number,
-  folioFin: number
-): void {
+export function saveCAF(tipoDte: DteTypeCode, cafXml: string, folioInicio: number, folioFin: number): void {
   set(KEYS.caf(tipoDte), cafXml);
   const existing = getFolioState(tipoDte);
   if (!existing) {
-    set(KEYS.folio(tipoDte), {
-      siguiente: folioInicio,
-      maximo: folioFin,
-    } satisfies FolioState);
+    set(KEYS.folio(tipoDte), { siguiente: folioInicio, maximo: folioFin } satisfies FolioState);
   }
 }
-
-export function getCAFXml(tipoDte: DteTypeCode): string | null {
-  return get<string>(KEYS.caf(tipoDte));
-}
-
-export function hasCAF(tipoDte: DteTypeCode): boolean {
-  return getCAFXml(tipoDte) !== null;
-}
+export function getCAFXml(tipoDte: DteTypeCode): string | null { return get<string>(KEYS.caf(tipoDte)); }
+export function hasCAF(tipoDte: DteTypeCode): boolean { return getCAFXml(tipoDte) !== null; }
 
 // --- Folios ---
 
@@ -182,12 +150,9 @@ export function getFolioState(tipoDte: DteTypeCode): FolioState | null {
   return get<FolioState>(KEYS.folio(tipoDte));
 }
 
-export function consumeFolio(
-  tipoDte: DteTypeCode
-): { folio: number; remaining: number } | null {
+export function consumeFolio(tipoDte: DteTypeCode): { folio: number; remaining: number } | null {
   const state = getFolioState(tipoDte);
   if (!state || state.siguiente > state.maximo) return null;
-
   const folio = state.siguiente;
   set(KEYS.folio(tipoDte), { ...state, siguiente: state.siguiente + 1 });
   return { folio, remaining: state.maximo - folio };
@@ -195,61 +160,41 @@ export function consumeFolio(
 
 // --- Productos (catálogo) ---
 
-export function getProductos(): Producto[] {
-  return get<Producto[]>(KEYS.productos) ?? [];
-}
+export function getProductos(): Producto[] { return get<Producto[]>(KEYS.productos) ?? []; }
 
 export function saveProducto(producto: Producto): void {
   const list = getProductos();
   const idx = list.findIndex((p) => p.id === producto.id);
-  if (idx >= 0) {
-    list[idx] = producto;
-  } else {
-    list.push(producto);
-  }
+  if (idx >= 0) list[idx] = producto;
+  else list.push(producto);
   set(KEYS.productos, list);
 }
 
 export function deleteProducto(id: string): void {
-  const list = getProductos().filter((p) => p.id !== id);
-  set(KEYS.productos, list);
+  set(KEYS.productos, getProductos().filter((p) => p.id !== id));
 }
 
 // --- Clientes guardados ---
 
-export function getClientes(): ClienteGuardado[] {
-  return get<ClienteGuardado[]>(KEYS.clientes) ?? [];
-}
+export function getClientes(): ClienteGuardado[] { return get<ClienteGuardado[]>(KEYS.clientes) ?? []; }
 
 export function saveCliente(cliente: ClienteGuardado): void {
   const list = getClientes();
   const idx = list.findIndex((c) => c.id === cliente.id);
-  if (idx >= 0) {
-    list[idx] = cliente;
-  } else {
-    list.push(cliente);
-  }
+  if (idx >= 0) list[idx] = cliente;
+  else list.push(cliente);
   set(KEYS.clientes, list);
 }
 
 export function deleteCliente(id: string): void {
-  const list = getClientes().filter((c) => c.id !== id);
-  set(KEYS.clientes, list);
+  set(KEYS.clientes, getClientes().filter((c) => c.id !== id));
 }
 
 // --- Drafts (auto-save) ---
 
-export function saveDraft(page: "cotizacion" | "factura", data: unknown): void {
-  set(`snk:draft:${page}`, data);
-}
-
-export function getDraft<T>(page: "cotizacion" | "factura"): T | null {
-  return get<T>(`snk:draft:${page}`);
-}
-
-export function clearDraft(page: "cotizacion" | "factura"): void {
-  remove(`snk:draft:${page}`);
-}
+export function saveDraft(page: "cotizacion" | "factura", data: unknown): void { set(`snk:draft:${page}`, data); }
+export function getDraft<T>(page: "cotizacion" | "factura"): T | null { return get<T>(`snk:draft:${page}`); }
+export function clearDraft(page: "cotizacion" | "factura"): void { remove(`snk:draft:${page}`); }
 
 // --- Historial de documentos ---
 
@@ -258,6 +203,7 @@ export interface HistorialItem {
   tipo: "cotizacion" | "factura";
   tipoDte?: number;
   folio?: number;
+  numero?: number;
   trackId?: string;
   clienteRut: string;
   clienteNombre: string;
@@ -265,15 +211,74 @@ export interface HistorialItem {
   fecha: string;
 }
 
-export function getHistorial(): HistorialItem[] {
-  return get<HistorialItem[]>("snk:historial") ?? [];
-}
+export function getHistorial(): HistorialItem[] { return get<HistorialItem[]>("snk:historial") ?? []; }
 
 export function addHistorial(item: HistorialItem): void {
   const list = getHistorial();
   list.unshift(item);
-  if (list.length > 100) list.length = 100;
+  if (list.length > 500) list.length = 500;
   set("snk:historial", list);
+}
+
+// --- Numeración correlativa cotizaciones ---
+
+export function getNextCotizacionNumber(): number {
+  const current = get<number>(KEYS.cotizNum) ?? 0;
+  const next = current + 1;
+  set(KEYS.cotizNum, next);
+  return next;
+}
+
+// --- Theme ---
+
+export function getTheme(): "dark" | "light" { return get<"dark" | "light">(KEYS.theme) ?? "dark"; }
+export function setTheme(theme: "dark" | "light"): void { set(KEYS.theme, theme); }
+
+// --- Onboarding ---
+
+export function isOnboarded(): boolean { return get<boolean>(KEYS.onboarded) ?? false; }
+export function markOnboarded(): void { set(KEYS.onboarded, true); }
+
+// --- Backup / Restore ---
+
+export function exportBackup(): string {
+  if (typeof window === "undefined") return "{}";
+  const backup: Record<string, string | null> = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.startsWith("snk:")) {
+      backup[key] = localStorage.getItem(key);
+    }
+  }
+  return JSON.stringify(backup, null, 2);
+}
+
+export function importBackup(json: string): void {
+  const data = JSON.parse(json) as Record<string, string>;
+  for (const [key, value] of Object.entries(data)) {
+    if (key.startsWith("snk:") && value) {
+      localStorage.setItem(key, value);
+    }
+  }
+}
+
+// --- CSV Export ---
+
+export function historialToCsv(): string {
+  const items = getHistorial();
+  const header = "Fecha,Tipo,Folio,Cliente RUT,Cliente Nombre,Monto Total,TrackID\n";
+  const rows = items.map((i) =>
+    [
+      new Date(i.fecha).toLocaleDateString("es-CL"),
+      i.tipo,
+      i.folio ?? i.numero ?? "",
+      `"${i.clienteRut}"`,
+      `"${i.clienteNombre}"`,
+      i.montoTotal,
+      i.trackId ?? "",
+    ].join(",")
+  );
+  return header + rows.join("\n");
 }
 
 // --- Utils ---

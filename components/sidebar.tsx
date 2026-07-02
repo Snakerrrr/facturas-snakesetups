@@ -10,6 +10,9 @@ import {
   Menu,
   PanelLeftClose,
   Zap,
+  Clock,
+  Users,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -20,6 +23,9 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/cotizaciones", label: "Cotizaciones", icon: FileText },
   { href: "/facturas", label: "Facturas", icon: Receipt },
+  { href: "/historial", label: "Historial", icon: Clock },
+  { href: "/clientes", label: "Clientes", icon: Users },
+  { href: "/resumen", label: "Resumen", icon: BarChart3 },
   { href: "/configuracion", label: "Configuración", icon: Settings },
 ];
 

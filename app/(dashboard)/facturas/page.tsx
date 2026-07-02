@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -58,6 +58,9 @@ import {
   hasCAF,
   getHistorial,
   addHistorial,
+  saveDraft,
+  getDraft,
+  clearDraft,
   type HistorialItem,
 } from "@/lib/client-storage";
 
@@ -95,6 +98,7 @@ function FacturasContent() {
   const [querying, setQuerying] = useState(false);
   const [queryResult, setQueryResult] = useState<{ estado: string; glosa: string } | null>(null);
   const [facturasHistorial, setFacturasHistorial] = useState<HistorialItem[]>([]);
+  const initialized = useRef(false);
 
   const loadFromCotizacion = useCallback(() => {
     const from = searchParams.get("from");
@@ -109,9 +113,26 @@ function FacturasContent() {
   }, [searchParams]);
 
   useEffect(() => {
+    const draft = getDraft<{ tipoDte: DteTypeCode; receptor: Receptor; items: ItemDetalle[] }>("factura");
+    if (draft && !searchParams.get("from")) {
+      if (draft.receptor?.rut || draft.items?.some((i) => i.nombre)) {
+        setTipoDte(draft.tipoDte || 33);
+        setReceptor(draft.receptor || emptyReceptor);
+        setItems(draft.items || defaultItems);
+      }
+    }
     loadFromCotizacion();
     setFacturasHistorial(getHistorial().filter((h) => h.tipo === "factura" && h.folio));
-  }, [loadFromCotizacion]);
+    initialized.current = true;
+  }, [loadFromCotizacion, searchParams]);
+
+  useEffect(() => {
+    if (!initialized.current) return;
+    const timer = setTimeout(() => {
+      saveDraft("factura", { tipoDte, receptor, items });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [tipoDte, receptor, items]);
 
   function loadRefFromHistorial(histId: string) {
     const fac = facturasHistorial.find((f) => f.id === histId);
@@ -171,6 +192,7 @@ function FacturasContent() {
         fecha: new Date().toISOString(),
       });
 
+      clearDraft("factura");
       if (folioResult.remaining <= 5) toast.warning(`Quedan ${folioResult.remaining} folios`);
     } catch { toast.error("Error de conexión"); }
     finally { setSending(false); }

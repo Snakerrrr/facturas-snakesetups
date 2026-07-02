@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Upload, Check, Trash2, Shield, ShieldCheck, Plus } from "lucide-react";
+import { Upload, Check, Trash2, Shield, ShieldCheck, Plus, Download, UploadCloud, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,7 +41,11 @@ import {
   getProductos,
   saveProducto,
   deleteProducto,
+  exportBackup,
+  importBackup,
 } from "@/lib/client-storage";
+import { RutInput } from "@/components/rut-input";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 export default function ConfiguracionPage() {
   const [empresa, setEmpresa] = useState<EmpresaConfig>(getEmpresa());
@@ -52,7 +56,10 @@ export default function ConfiguracionPage() {
   >({});
   const [productos, setProductos] = useState<Producto[]>([]);
   const [newProd, setNewProd] = useState({ nombre: "", precio: "" });
+  const [editingProd, setEditingProd] = useState<string | null>(null);
+  const [editProd, setEditProd] = useState({ nombre: "", precio: "" });
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ type: string; id: string; name: string } | null>(null);
 
   useEffect(() => {
     setCertLoaded(hasCertificate());
@@ -142,6 +149,46 @@ export default function ConfiguracionPage() {
     toast.success("Producto eliminado");
   }
 
+  function handleEditProducto(prod: Producto) {
+    setEditingProd(prod.id);
+    setEditProd({ nombre: prod.nombre, precio: String(prod.precioUnitario) });
+  }
+
+  function handleSaveEdit() {
+    if (!editingProd || !editProd.nombre || !editProd.precio) return;
+    saveProducto({ id: editingProd, nombre: editProd.nombre, precioUnitario: parseInt(editProd.precio) });
+    setProductos(getProductos());
+    setEditingProd(null);
+    toast.success("Producto actualizado");
+  }
+
+  function handleExportBackup() {
+    const data = exportBackup();
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `snakesetups-backup-${new Date().toISOString().split("T")[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success("Backup descargado");
+  }
+
+  async function handleImportBackup(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      importBackup(text);
+      toast.success("Backup restaurado. Recargando...");
+      setTimeout(() => window.location.reload(), 1000);
+    } catch {
+      toast.error("Error al importar backup");
+    }
+  }
+
   async function handleUploadLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -175,11 +222,12 @@ export default function ConfiguracionPage() {
       </div>
 
       <Tabs defaultValue="empresa">
-        <TabsList className="w-full grid grid-cols-4 h-auto">
+        <TabsList className="w-full grid grid-cols-5 h-auto">
           <TabsTrigger value="empresa" className="text-xs sm:text-sm px-1 sm:px-3 py-2">Empresa</TabsTrigger>
-          <TabsTrigger value="certificado" className="text-xs sm:text-sm px-1 sm:px-3 py-2">Certificado</TabsTrigger>
+          <TabsTrigger value="certificado" className="text-xs sm:text-sm px-1 sm:px-3 py-2">Cert.</TabsTrigger>
           <TabsTrigger value="folios" className="text-xs sm:text-sm px-1 sm:px-3 py-2">Folios</TabsTrigger>
           <TabsTrigger value="productos" className="text-xs sm:text-sm px-1 sm:px-3 py-2">Productos</TabsTrigger>
+          <TabsTrigger value="backup" className="text-xs sm:text-sm px-1 sm:px-3 py-2">Backup</TabsTrigger>
         </TabsList>
 
         {/* --- EMPRESA --- */}
@@ -223,7 +271,7 @@ export default function ConfiguracionPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="rut">RUT Empresa</Label>
-                  <Input id="rut" value={empresa.rut} onChange={(e) => updateEmpresa("rut", e.target.value)} />
+                  <RutInput id="rut" value={empresa.rut} onChange={(v) => updateEmpresa("rut", v)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="razonSocial">Razón Social</Label>
@@ -378,16 +426,32 @@ export default function ConfiguracionPage() {
               ) : (
                 <div className="space-y-2">
                   {productos.map((prod) => (
-                    <div key={prod.id} className="flex items-center justify-between p-3 rounded-lg border">
-                      <div>
-                        <p className="font-medium">{prod.nombre}</p>
-                        <p className="text-sm text-muted-foreground">
-                          ${prod.precioUnitario.toLocaleString("es-CL")}
-                        </p>
-                      </div>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteProducto(prod.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    <div key={prod.id} className="flex items-center justify-between p-3 rounded-lg border gap-3">
+                      {editingProd === prod.id ? (
+                        <div className="flex-1 flex flex-col sm:flex-row gap-2">
+                          <Input value={editProd.nombre} onChange={(e) => setEditProd((p) => ({ ...p, nombre: e.target.value }))} className="flex-1" />
+                          <Input type="number" value={editProd.precio} onChange={(e) => setEditProd((p) => ({ ...p, precio: e.target.value }))} className="w-[120px]" />
+                          <div className="flex gap-1">
+                            <Button size="sm" onClick={handleSaveEdit}>Guardar</Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditingProd(null)}>Cancelar</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{prod.nombre}</p>
+                            <p className="text-sm text-muted-foreground">${prod.precioUnitario.toLocaleString("es-CL")}</p>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => handleEditProducto(prod)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setConfirmDelete({ type: "producto", id: prod.id, name: prod.nombre })}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -395,7 +459,41 @@ export default function ConfiguracionPage() {
             </CardContent>
           </Card>
         </TabsContent>
+        {/* --- BACKUP --- */}
+        <TabsContent value="backup" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Backup y Restauración</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Exportar datos</p>
+                <p className="text-xs text-muted-foreground">Descarga todos sus datos (empresa, productos, clientes, historial, folios) como archivo JSON.</p>
+                <Button variant="outline" onClick={handleExportBackup}>
+                  <Download className="mr-2 h-4 w-4" />Descargar Backup
+                </Button>
+              </div>
+              <Separator />
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Restaurar datos</p>
+                <p className="text-xs text-muted-foreground">Importe un archivo de backup para restaurar todos los datos. Esto reemplazará los datos actuales.</p>
+                <Input type="file" accept=".json" onChange={handleImportBackup} className="max-w-xs" />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onOpenChange={(open) => !open && setConfirmDelete(null)}
+        title="Eliminar"
+        description={`¿Está seguro de eliminar "${confirmDelete?.name}"? Esta acción no se puede deshacer.`}
+        onConfirm={() => {
+          if (confirmDelete?.type === "producto") handleDeleteProducto(confirmDelete.id);
+        }}
+        confirmLabel="Eliminar"
+      />
     </div>
   );
 }
