@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SnakeSetups - Facturación Electrónica",
+  title: "FacturApp - Cotizaciones y Facturación Electrónica",
   description:
-    "Cotizaciones y facturación electrónica con firma SII para Chile",
+    "Arme cotizaciones y emita facturas electrónicas con firma SII para Chile",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

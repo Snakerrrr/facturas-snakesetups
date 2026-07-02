@@ -7,15 +7,15 @@ import type {
 } from "./types";
 
 const DEFAULT_EMPRESA: EmpresaConfig = {
-  rut: "78.293.834-7",
-  razonSocial: "SNAKE SETUPS SPA",
-  giro: "Venta y Armados de componentes de computadora",
-  actividadEconomica: 474100,
-  direccion: "LAS SALITRERAS 7792",
-  comuna: "RENCA",
-  ciudad: "Santiago",
-  nroResolucion: 99,
-  fechaResolucion: "2014-08-01",
+  rut: "",
+  razonSocial: "",
+  giro: "",
+  actividadEconomica: 0,
+  direccion: "",
+  comuna: "",
+  ciudad: "",
+  nroResolucion: 0,
+  fechaResolucion: "",
   ambiente: "certificacion",
 };
 

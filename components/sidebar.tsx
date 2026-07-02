@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   FileText,
@@ -13,11 +14,12 @@ import {
   Clock,
   Users,
   BarChart3,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useState } from "react";
+import { getEmpresa, isEmpresaSaved } from "@/lib/client-storage";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -38,11 +40,60 @@ function Logo({ collapsed }: { collapsed?: boolean }) {
       {!collapsed && (
         <div className="flex flex-col">
           <span className="text-sm font-bold tracking-tight text-foreground">
-            SnakeSetups
+            FacturApp
           </span>
           <span className="text-[10px] text-muted-foreground leading-none">
             Facturación SII
           </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EmpresaInfo({ collapsed }: { collapsed?: boolean }) {
+  const [empresa, setEmpresa] = useState<{ razonSocial: string; rut: string } | null>(null);
+
+  useEffect(() => {
+    if (isEmpresaSaved()) {
+      const data = getEmpresa();
+      if (data.razonSocial) {
+        setEmpresa({ razonSocial: data.razonSocial, rut: data.rut });
+      }
+    }
+  }, []);
+
+  if (!empresa) {
+    return (
+      <Link href="/configuracion" className="block">
+        <div className={cn("rounded-xl border border-dashed border-border p-3 hover:bg-muted/30 transition-colors", collapsed && "p-2")}>
+          {collapsed ? (
+            <Building2 className="h-4 w-4 text-muted-foreground mx-auto" />
+          ) : (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">Sin empresa configurada</p>
+              <p className="text-[10px] text-muted-foreground">Click para configurar</p>
+            </div>
+          )}
+        </div>
+      </Link>
+    );
+  }
+
+  return (
+    <div className={cn("rounded-xl bg-[var(--snake-muted)] p-3", collapsed && "p-2")}>
+      {collapsed ? (
+        <Building2 className="h-4 w-4 text-[var(--snake)] mx-auto" />
+      ) : (
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-[var(--snake)] truncate">
+            {empresa.razonSocial}
+          </p>
+          {empresa.rut && (
+            <p className="text-[10px] text-muted-foreground">
+              RUT: {empresa.rut}
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -84,6 +135,37 @@ function NavLink({
       />
       {!collapsed && <span>{item.label}</span>}
     </Link>
+  );
+}
+
+function MobileTabBar() {
+  const pathname = usePathname();
+  const mainItems = navItems.slice(0, 5);
+
+  return (
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-sidebar/95 backdrop-blur-md safe-area-bottom">
+      <div className="flex items-center justify-around">
+        {mainItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex flex-col items-center gap-0.5 py-2 px-3 min-w-[56px] text-[10px] font-medium transition-colors relative",
+                isActive ? "text-[var(--snake)]" : "text-muted-foreground"
+              )}
+            >
+              {isActive && (
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 h-[2px] w-8 rounded-b-full bg-[var(--snake)]" />
+              )}
+              <item.icon className={cn("h-5 w-5", isActive && "stroke-[2.5px]")} />
+              {item.label.length > 8 ? item.label.slice(0, 7) + "." : item.label}
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
   );
 }
 
@@ -134,31 +216,8 @@ export function Sidebar() {
           ))}
         </nav>
 
-        <div
-          className={cn(
-            "p-3 border-t border-border/50",
-            collapsed && "px-2"
-          )}
-        >
-          <div
-            className={cn(
-              "rounded-xl bg-[var(--snake-muted)] p-3",
-              collapsed && "p-2"
-            )}
-          >
-            {collapsed ? (
-              <Zap className="h-4 w-4 text-[var(--snake)] mx-auto" />
-            ) : (
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-[var(--snake)]">
-                  Snake Setups SPA
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  RUT: 78.293.834-7
-                </p>
-              </div>
-            )}
-          </div>
+        <div className={cn("p-3 border-t border-border/50", collapsed && "px-2")}>
+          <EmpresaInfo collapsed={collapsed} />
         </div>
       </aside>
 
@@ -173,40 +232,19 @@ export function Sidebar() {
             <div className="flex items-center px-4 h-14 border-b border-border/50">
               <Logo />
             </div>
-            <nav className="flex flex-col gap-1 p-3">
+            <nav className="flex flex-col gap-1 p-3 flex-1">
               {navItems.map((item) => (
                 <NavLink key={item.href} item={item} />
               ))}
             </nav>
+            <div className="p-3 border-t border-border/50">
+              <EmpresaInfo />
+            </div>
           </SheetContent>
         </Sheet>
       </header>
 
-      {/* Mobile: bottom tab bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-sidebar/95 backdrop-blur-md safe-area-bottom">
-        <div className="flex items-center justify-around">
-          {navItems.map((item) => {
-            const pathname = usePathname();
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex flex-col items-center gap-0.5 py-2 px-3 min-w-[64px] text-[11px] font-medium transition-colors relative",
-                  isActive ? "text-[var(--snake)]" : "text-muted-foreground"
-                )}
-              >
-                {isActive && (
-                  <span className="absolute top-0 left-1/2 -translate-x-1/2 h-[2px] w-8 rounded-b-full bg-[var(--snake)]" />
-                )}
-                <item.icon className={cn("h-5 w-5", isActive && "stroke-[2.5px]")} />
-                {item.label.slice(0, 6)}{item.label.length > 6 ? "." : ""}
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+      <MobileTabBar />
     </>
   );
 }

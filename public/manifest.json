@@ -1,7 +1,7 @@
 {
-  "name": "SnakeSetups - Facturación",
-  "short_name": "SnakeSetups",
-  "description": "Cotizaciones y facturación electrónica SII",
+  "name": "FacturApp - Cotizaciones y Facturación",
+  "short_name": "FacturApp",
+  "description": "Cotizaciones y facturación electrónica SII Chile",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#0a0a12",

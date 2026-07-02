@@ -236,7 +236,7 @@ export default function ConfiguracionPage() {
             <CardHeader>
               <CardTitle>Datos del Emisor</CardTitle>
               <CardDescription>
-                Pre-cargados con los datos de Snake Setups SPA. Ajuste si es necesario.
+                Ingrese los datos de su empresa. Aparecerán en documentos y en el sidebar.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
