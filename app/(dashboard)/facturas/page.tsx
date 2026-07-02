@@ -56,6 +56,9 @@ import {
   consumeFolio,
   hasCertificate,
   hasCAF,
+  getHistorial,
+  addHistorial,
+  type HistorialItem,
 } from "@/lib/client-storage";
 
 const emptyReceptor: Receptor = {
@@ -91,6 +94,7 @@ function FacturasContent() {
   const [queryPassword, setQueryPassword] = useState("");
   const [querying, setQuerying] = useState(false);
   const [queryResult, setQueryResult] = useState<{ estado: string; glosa: string } | null>(null);
+  const [facturasHistorial, setFacturasHistorial] = useState<HistorialItem[]>([]);
 
   const loadFromCotizacion = useCallback(() => {
     const from = searchParams.get("from");
@@ -104,7 +108,23 @@ function FacturasContent() {
     }
   }, [searchParams]);
 
-  useEffect(() => { loadFromCotizacion(); }, [loadFromCotizacion]);
+  useEffect(() => {
+    loadFromCotizacion();
+    setFacturasHistorial(getHistorial().filter((h) => h.tipo === "factura" && h.folio));
+  }, [loadFromCotizacion]);
+
+  function loadRefFromHistorial(histId: string) {
+    const fac = facturasHistorial.find((f) => f.id === histId);
+    if (!fac || !fac.folio || !fac.tipoDte) return;
+    setReferencias([{
+      tipoDocRef: fac.tipoDte as DteTypeCode,
+      folioRef: fac.folio,
+      fechaRef: fac.fecha.split("T")[0],
+      codRef: 1,
+      razonRef: tipoDte === 61 ? "Anula documento" : "Corrige monto",
+    }]);
+    toast.success(`Referencia cargada: Folio ${fac.folio}`);
+  }
 
   const neto = items.reduce((sum, item) => sum + item.montoItem, 0);
   const isExenta = tipoDte === 34;
@@ -138,6 +158,19 @@ function FacturasContent() {
       setResult(data);
       setShowResult(true);
       toast.success(`DTE emitido - Folio ${data.folio}`);
+
+      addHistorial({
+        id: crypto.randomUUID(),
+        tipo: "factura",
+        tipoDte,
+        folio: data.folio,
+        trackId: data.trackId,
+        clienteRut: receptor.rut,
+        clienteNombre: receptor.razonSocial,
+        montoTotal: total,
+        fecha: new Date().toISOString(),
+      });
+
       if (folioResult.remaining <= 5) toast.warning(`Quedan ${folioResult.remaining} folios`);
     } catch { toast.error("Error de conexión"); }
     finally { setSending(false); }
@@ -227,7 +260,24 @@ function FacturasContent() {
               Referencias
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            {facturasHistorial.length > 0 && (
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Cargar desde factura emitida</Label>
+                <Select value="" onValueChange={(v) => { if (v) loadRefFromHistorial(v); }}>
+                  <SelectTrigger className="sm:max-w-md">
+                    <SelectValue placeholder="Seleccionar factura del historial..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {facturasHistorial.map((f) => (
+                      <SelectItem key={f.id} value={f.id}>
+                        Folio {f.folio} - {f.clienteNombre} - {formatCurrency(f.montoTotal)} ({new Date(f.fecha).toLocaleDateString("es-CL")})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <ReferenciasForm referencias={referencias} onChange={setReferencias} />
           </CardContent>
         </Card>

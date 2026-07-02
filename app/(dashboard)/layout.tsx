@@ -1,5 +1,7 @@
 import { Sidebar } from "@/components/sidebar";
 import { StatusBar } from "@/components/setup-banner";
+import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
+import { PageTransition } from "@/components/page-transition";
 
 export default function DashboardLayout({
   children,
@@ -8,6 +10,7 @@ export default function DashboardLayout({
 }) {
   return (
     <div className="flex flex-col md:flex-row h-dvh overflow-hidden">
+      <KeyboardShortcuts />
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Topbar */}
@@ -21,7 +24,7 @@ export default function DashboardLayout({
             <div className="md:hidden mb-4">
               <StatusBar />
             </div>
-            {children}
+            <PageTransition>{children}</PageTransition>
           </div>
         </main>
       </div>

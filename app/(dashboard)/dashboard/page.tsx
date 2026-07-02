@@ -9,10 +9,11 @@ import {
   FolderOpen,
   ArrowRight,
   Zap,
+  Inbox,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/empty-state";
 import { formatCurrency } from "@/lib/utils";
 import {
   getHistorial,
@@ -180,14 +181,22 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent history */}
-      {historial.length > 0 && (
-        <Card className="border-border/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-              <Clock className="h-4 w-4" />Últimos Documentos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+      <Card className="border-border/50">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+            <Clock className="h-4 w-4" />Últimos Documentos
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {historial.length === 0 ? (
+            <EmptyState
+              icon={Inbox}
+              title="Sin documentos aún"
+              description="Cuando genere su primera cotización o factura, aparecerá aquí."
+              actionLabel="Crear Cotización"
+              actionHref="/cotizaciones"
+            />
+          ) : (
             <div className="space-y-1">
               {historial.slice(0, 8).map((item) => (
                 <div
@@ -212,9 +221,9 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
