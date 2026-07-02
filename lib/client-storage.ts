@@ -237,6 +237,45 @@ export function deleteCliente(id: string): void {
   set(KEYS.clientes, list);
 }
 
+// --- Drafts (auto-save) ---
+
+export function saveDraft(page: "cotizacion" | "factura", data: unknown): void {
+  set(`snk:draft:${page}`, data);
+}
+
+export function getDraft<T>(page: "cotizacion" | "factura"): T | null {
+  return get<T>(`snk:draft:${page}`);
+}
+
+export function clearDraft(page: "cotizacion" | "factura"): void {
+  remove(`snk:draft:${page}`);
+}
+
+// --- Historial de documentos ---
+
+export interface HistorialItem {
+  id: string;
+  tipo: "cotizacion" | "factura";
+  tipoDte?: number;
+  folio?: number;
+  trackId?: string;
+  clienteRut: string;
+  clienteNombre: string;
+  montoTotal: number;
+  fecha: string;
+}
+
+export function getHistorial(): HistorialItem[] {
+  return get<HistorialItem[]>("snk:historial") ?? [];
+}
+
+export function addHistorial(item: HistorialItem): void {
+  const list = getHistorial();
+  list.unshift(item);
+  if (list.length > 100) list.length = 100;
+  set("snk:historial", list);
+}
+
 // --- Utils ---
 
 export function fileToBase64(file: File): Promise<string> {

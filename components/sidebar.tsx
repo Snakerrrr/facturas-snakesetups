@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  LayoutDashboard,
   FileText,
   Receipt,
   Settings,
@@ -16,6 +17,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
 
 const navItems = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/cotizaciones", label: "Cotizaciones", icon: FileText },
   { href: "/facturas", label: "Facturas", icon: Receipt },
   { href: "/configuracion", label: "Configuración", icon: Settings },

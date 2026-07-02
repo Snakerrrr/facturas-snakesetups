@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn, formatCurrency } from "@/lib/utils";
+import { MoneyInput } from "@/components/money-input";
 import { getProductos } from "@/lib/client-storage";
 import type { ItemDetalle, Producto } from "@/lib/types";
 
@@ -157,11 +158,9 @@ export function ItemsTable({
               </div>
               <div className="space-y-1">
                 <Label className="text-[11px] text-muted-foreground">Precio Unit.</Label>
-                <Input
-                  type="number"
-                  value={item.precioUnitario || ""}
-                  onChange={(e) => updateItem(index, "precioUnitario", parseInt(e.target.value) || 0)}
-                  min={0}
+                <MoneyInput
+                  value={item.precioUnitario}
+                  onChange={(v) => updateItem(index, "precioUnitario", v)}
                 />
               </div>
             </div>
