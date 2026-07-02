@@ -6,22 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TableFooter,
-} from "@/components/ui/table";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { getProductos } from "@/lib/client-storage";
 import type { ItemDetalle, Producto } from "@/lib/types";
 
@@ -45,6 +36,9 @@ function calcMontoItem(item: ItemDetalle): number {
     : 0;
   return subtotal - descuento;
 }
+
+const ghostInput =
+  "bg-transparent border-transparent hover:border-border focus:border-ring focus:bg-input transition-all duration-200 h-9";
 
 export function ItemsTable({
   items,
@@ -100,20 +94,23 @@ export function ItemsTable({
   const total = neto + iva;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Mobile: card layout */}
       <div className="flex flex-col gap-3 md:hidden">
         {items.map((item, index) => (
-          <div key={index} className="rounded-lg border p-3 space-y-3 relative">
-            <div className="flex items-start justify-between gap-2">
-              <span className="text-xs font-medium text-muted-foreground">
+          <div
+            key={index}
+            className="rounded-xl border border-border/50 bg-card p-3.5 space-y-3"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
                 Item {index + 1}
               </span>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-destructive -mt-1 -mr-1"
+                className="h-7 w-7 text-muted-foreground hover:text-destructive"
                 onClick={() => removeRow(index)}
                 disabled={items.length === 1}
               >
@@ -128,8 +125,8 @@ export function ItemsTable({
                   if (v) selectProducto(index, v);
                 }}
               >
-                <SelectTrigger className="h-8 text-xs">
-                  <Package className="h-3 w-3 mr-1.5 shrink-0" />
+                <SelectTrigger className="h-8 text-xs border-dashed">
+                  <Package className="h-3 w-3 mr-1.5 shrink-0 text-[var(--snake)]" />
                   <SelectValue placeholder="Elegir del catálogo..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -150,24 +147,20 @@ export function ItemsTable({
 
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <Label className="text-xs">Cantidad</Label>
+                <Label className="text-[11px] text-muted-foreground">Cantidad</Label>
                 <Input
                   type="number"
                   value={item.cantidad || ""}
-                  onChange={(e) =>
-                    updateItem(index, "cantidad", parseFloat(e.target.value) || 0)
-                  }
+                  onChange={(e) => updateItem(index, "cantidad", parseFloat(e.target.value) || 0)}
                   min={1}
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Precio Unit.</Label>
+                <Label className="text-[11px] text-muted-foreground">Precio Unit.</Label>
                 <Input
                   type="number"
                   value={item.precioUnitario || ""}
-                  onChange={(e) =>
-                    updateItem(index, "precioUnitario", parseInt(e.target.value) || 0)
-                  }
+                  onChange={(e) => updateItem(index, "precioUnitario", parseInt(e.target.value) || 0)}
                   min={0}
                 />
               </div>
@@ -175,21 +168,20 @@ export function ItemsTable({
 
             {showDescuento && (
               <div className="w-1/2 space-y-1">
-                <Label className="text-xs">Descuento %</Label>
+                <Label className="text-[11px] text-muted-foreground">Descuento %</Label>
                 <Input
                   type="number"
                   value={item.descuentoPct || ""}
-                  onChange={(e) =>
-                    updateItem(index, "descuentoPct", parseFloat(e.target.value) || 0)
-                  }
+                  onChange={(e) => updateItem(index, "descuentoPct", parseFloat(e.target.value) || 0)}
                   min={0}
                   max={100}
                 />
               </div>
             )}
 
-            <div className="flex justify-end pt-1 border-t">
-              <span className="font-bold text-sm">
+            <div className="flex justify-between items-center pt-2 border-t border-border/50">
+              <span className="text-xs text-muted-foreground">Subtotal</span>
+              <span className="font-bold text-sm text-[var(--snake)]">
                 {formatCurrency(item.montoItem)}
               </span>
             </div>
@@ -197,147 +189,138 @@ export function ItemsTable({
         ))}
       </div>
 
-      {/* Desktop: table layout */}
-      <div className="hidden md:block rounded-lg border overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="min-w-[200px]">Nombre</TableHead>
-              <TableHead className="w-[100px]">Cantidad</TableHead>
-              <TableHead className="w-[130px]">Precio Unit.</TableHead>
-              {showDescuento && (
-                <TableHead className="w-[90px]">Desc. %</TableHead>
+      {/* Desktop: billing grid */}
+      <div className="hidden md:block rounded-xl border border-border/50 overflow-hidden">
+        <div className="grid grid-cols-[1fr_90px_120px_90px_120px_40px] bg-muted/30 border-b border-border/50 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span>Descripción</span>
+          <span className="text-center">Cant.</span>
+          <span className="text-right">P. Unit.</span>
+          {showDescuento && <span className="text-center">Desc.</span>}
+          <span className="text-right">Monto</span>
+          <span />
+        </div>
+        {!showDescuento && (
+          <style>{`.billing-grid { grid-template-columns: 1fr 90px 120px 120px 40px !important; }`}</style>
+        )}
+        {items.map((item, index) => (
+          <div
+            key={index}
+            className={cn(
+              "grid px-3 py-1.5 items-center group transition-colors hover:bg-muted/20",
+              showDescuento
+                ? "grid-cols-[1fr_90px_120px_90px_120px_40px]"
+                : "grid-cols-[1fr_90px_120px_120px_40px]"
+            )}
+          >
+            <div className="flex flex-col gap-0.5 pr-2">
+              {catalogo.length > 0 && !item.nombre && (
+                <Select
+                  value=""
+                  onValueChange={(v) => {
+                    if (v) selectProducto(index, v);
+                  }}
+                >
+                  <SelectTrigger className="h-7 text-[11px] text-muted-foreground border-dashed">
+                    <Package className="h-3 w-3 mr-1 text-[var(--snake)]" />
+                    <SelectValue placeholder="Catálogo..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {catalogo.map((prod) => (
+                      <SelectItem key={prod.id} value={prod.id}>
+                        {prod.nombre} - ${prod.precioUnitario.toLocaleString("es-CL")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
-              <TableHead className="w-[130px] text-right">Monto</TableHead>
-              <TableHead className="w-[50px]" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item, index) => (
-              <TableRow key={index}>
-                <TableCell>
-                  <div className="flex flex-col gap-1">
-                    {catalogo.length > 0 && (
-                      <Select
-                        value=""
-                        onValueChange={(v) => {
-                          if (v) selectProducto(index, v);
-                        }}
-                      >
-                        <SelectTrigger className="h-7 text-xs text-muted-foreground">
-                          <SelectValue placeholder="Elegir del catálogo..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {catalogo.map((prod) => (
-                            <SelectItem key={prod.id} value={prod.id}>
-                              {prod.nombre} - $
-                              {prod.precioUnitario.toLocaleString("es-CL")}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                    <Input
-                      value={item.nombre}
-                      onChange={(e) =>
-                        updateItem(index, "nombre", e.target.value)
-                      }
-                      placeholder="Nombre del producto/servicio"
-                      className="h-9"
-                    />
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    value={item.cantidad || ""}
-                    onChange={(e) =>
-                      updateItem(index, "cantidad", parseFloat(e.target.value) || 0)
-                    }
-                    min={1}
-                    className="h-9"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    value={item.precioUnitario || ""}
-                    onChange={(e) =>
-                      updateItem(index, "precioUnitario", parseInt(e.target.value) || 0)
-                    }
-                    min={0}
-                    className="h-9"
-                  />
-                </TableCell>
-                {showDescuento && (
-                  <TableCell>
-                    <Input
-                      type="number"
-                      value={item.descuentoPct || ""}
-                      onChange={(e) =>
-                        updateItem(index, "descuentoPct", parseFloat(e.target.value) || 0)
-                      }
-                      min={0}
-                      max={100}
-                      className="h-9"
-                    />
-                  </TableCell>
-                )}
-                <TableCell className="text-right font-medium">
-                  {formatCurrency(item.montoItem)}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive"
-                    onClick={() => removeRow(index)}
-                    disabled={items.length === 1}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-          <TableFooter>
-            <TableRow>
-              <TableCell colSpan={showDescuento ? 4 : 3} className="text-right font-medium">Neto</TableCell>
-              <TableCell className="text-right font-bold">{formatCurrency(neto)}</TableCell>
-              <TableCell />
-            </TableRow>
-            <TableRow>
-              <TableCell colSpan={showDescuento ? 4 : 3} className="text-right font-medium">IVA (19%)</TableCell>
-              <TableCell className="text-right font-bold">{formatCurrency(iva)}</TableCell>
-              <TableCell />
-            </TableRow>
-            <TableRow>
-              <TableCell colSpan={showDescuento ? 4 : 3} className="text-right font-medium text-lg">Total</TableCell>
-              <TableCell className="text-right font-bold text-lg">{formatCurrency(total)}</TableCell>
-              <TableCell />
-            </TableRow>
-          </TableFooter>
-        </Table>
-      </div>
-
-      {/* Mobile totals */}
-      <div className="md:hidden rounded-lg border p-3 bg-muted/30 space-y-1">
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Neto</span>
-          <span className="font-medium">{formatCurrency(neto)}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">IVA (19%)</span>
-          <span className="font-medium">{formatCurrency(iva)}</span>
-        </div>
-        <div className="flex justify-between text-base pt-1 border-t">
-          <span className="font-bold">Total</span>
-          <span className="font-bold">{formatCurrency(total)}</span>
+              <Input
+                value={item.nombre}
+                onChange={(e) => updateItem(index, "nombre", e.target.value)}
+                placeholder="Producto o servicio..."
+                className={ghostInput}
+              />
+            </div>
+            <Input
+              type="number"
+              value={item.cantidad || ""}
+              onChange={(e) => updateItem(index, "cantidad", parseFloat(e.target.value) || 0)}
+              min={1}
+              className={cn(ghostInput, "text-center")}
+            />
+            <Input
+              type="number"
+              value={item.precioUnitario || ""}
+              onChange={(e) => updateItem(index, "precioUnitario", parseInt(e.target.value) || 0)}
+              min={0}
+              className={cn(ghostInput, "text-right")}
+            />
+            {showDescuento && (
+              <Input
+                type="number"
+                value={item.descuentoPct || ""}
+                onChange={(e) => updateItem(index, "descuentoPct", parseFloat(e.target.value) || 0)}
+                min={0}
+                max={100}
+                className={cn(ghostInput, "text-center")}
+              />
+            )}
+            <span className="text-right text-sm font-medium tabular-nums pr-1">
+              {formatCurrency(item.montoItem)}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive transition-all"
+              onClick={() => removeRow(index)}
+              disabled={items.length === 1}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        ))}
+        <div className="border-t border-border/50 px-3 py-1.5">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={addRow}
+            className="text-muted-foreground hover:text-[var(--snake)] w-full justify-start gap-2 h-9"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Agregar item
+          </Button>
         </div>
       </div>
 
-      <Button type="button" variant="outline" size="sm" onClick={addRow} className="w-full md:w-auto">
+      {/* Totals */}
+      <div className="flex justify-end">
+        <div className="w-full md:w-72 rounded-xl border border-border/50 bg-card overflow-hidden">
+          <div className="flex justify-between px-4 py-2.5 text-sm">
+            <span className="text-muted-foreground">Neto</span>
+            <span className="font-medium tabular-nums">{formatCurrency(neto)}</span>
+          </div>
+          <div className="flex justify-between px-4 py-2.5 text-sm border-t border-border/30">
+            <span className="text-muted-foreground">IVA (19%)</span>
+            <span className="font-medium tabular-nums">{formatCurrency(iva)}</span>
+          </div>
+          <div className="flex justify-between px-4 py-3 bg-[var(--snake-muted)] border-t border-[var(--snake)]/20">
+            <span className="font-bold text-[var(--snake)]">Total</span>
+            <span className="font-bold text-lg text-[var(--snake)] tabular-nums">
+              {formatCurrency(total)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile add button */}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={addRow}
+        className="w-full md:hidden border-dashed"
+      >
         <Plus className="mr-2 h-4 w-4" />
         Agregar Item
       </Button>

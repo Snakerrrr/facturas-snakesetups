@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +18,6 @@ import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -59,14 +59,8 @@ import {
 } from "@/lib/client-storage";
 
 const emptyReceptor: Receptor = {
-  rut: "",
-  razonSocial: "",
-  giro: "",
-  contacto: "",
-  email: "",
-  direccion: "",
-  comuna: "",
-  ciudad: "",
+  rut: "", razonSocial: "", giro: "", contacto: "", email: "",
+  direccion: "", comuna: "", ciudad: "",
 };
 
 const defaultItems: ItemDetalle[] = [
@@ -77,11 +71,7 @@ const needsReferencia: DteTypeCode[] = [56, 61];
 
 export default function FacturasPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="p-8 text-center text-muted-foreground">Cargando...</div>
-      }
-    >
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Cargando...</div>}>
       <FacturasContent />
     </Suspense>
   );
@@ -97,14 +87,10 @@ function FacturasContent() {
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<DteResult | null>(null);
   const [showResult, setShowResult] = useState(false);
-
   const [queryTrackId, setQueryTrackId] = useState("");
   const [queryPassword, setQueryPassword] = useState("");
   const [querying, setQuerying] = useState(false);
-  const [queryResult, setQueryResult] = useState<{
-    estado: string;
-    glosa: string;
-  } | null>(null);
+  const [queryResult, setQueryResult] = useState<{ estado: string; glosa: string } | null>(null);
 
   const loadFromCotizacion = useCallback(() => {
     const from = searchParams.get("from");
@@ -114,15 +100,11 @@ function FacturasContent() {
         const parsed = JSON.parse(data);
         if (parsed.receptor) setReceptor(parsed.receptor);
         if (parsed.items) setItems(parsed.items);
-      } catch {
-        /* ignore */
-      }
+      } catch { /* ignore */ }
     }
   }, [searchParams]);
 
-  useEffect(() => {
-    loadFromCotizacion();
-  }, [loadFromCotizacion]);
+  useEffect(() => { loadFromCotizacion(); }, [loadFromCotizacion]);
 
   const neto = items.reduce((sum, item) => sum + item.montoItem, 0);
   const isExenta = tipoDte === 34;
@@ -130,32 +112,15 @@ function FacturasContent() {
   const total = neto + iva;
 
   async function handleSubmit() {
-    if (!certPassword) {
-      toast.error("Ingrese la contraseña del certificado");
-      return;
-    }
+    if (!certPassword) { toast.error("Ingrese la contraseña del certificado"); return; }
     const empresa = getEmpresa();
-    if (!empresa || !empresa.rut) {
-      toast.error("Configure los datos de la empresa primero");
-      return;
-    }
-    if (!hasCertificate()) {
-      toast.error("Cargue su certificado digital en Configuración");
-      return;
-    }
-    if (!hasCAF(tipoDte)) {
-      toast.error(`Cargue el CAF para ${DTE_TYPES[tipoDte]} en Configuración`);
-      return;
-    }
-
+    if (!empresa?.rut) { toast.error("Configure los datos de la empresa"); return; }
+    if (!hasCertificate()) { toast.error("Cargue su certificado digital"); return; }
+    if (!hasCAF(tipoDte)) { toast.error(`Cargue el CAF para ${DTE_TYPES[tipoDte]}`); return; }
     const certBase64 = getCertificateBase64();
     const cafXml = getCAFXml(tipoDte);
     const folioResult = consumeFolio(tipoDte);
-
-    if (!folioResult) {
-      toast.error(`Sin folios para ${DTE_TYPES[tipoDte]}. Cargue un nuevo CAF.`);
-      return;
-    }
+    if (!folioResult) { toast.error(`Sin folios para ${DTE_TYPES[tipoDte]}`); return; }
 
     setSending(true);
     try {
@@ -163,133 +128,91 @@ function FacturasContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tipoDte,
-          receptor,
-          items,
+          tipoDte, receptor, items,
           referencias: needsReferencia.includes(tipoDte) ? referencias : undefined,
-          folio: folioResult.folio,
-          certBase64,
-          certPassword,
-          cafXml,
-          empresa,
+          folio: folioResult.folio, certBase64, certPassword, cafXml, empresa,
         }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error || "Error al emitir DTE");
-        return;
-      }
+      if (!res.ok) { toast.error(data.error || "Error al emitir DTE"); return; }
       setResult(data);
       setShowResult(true);
       toast.success(`DTE emitido - Folio ${data.folio}`);
-      if (folioResult.remaining <= 5) {
-        toast.warning(`Quedan solo ${folioResult.remaining} folios para ${DTE_TYPES[tipoDte]}`);
-      }
-    } catch {
-      toast.error("Error de conexión");
-    } finally {
-      setSending(false);
-    }
+      if (folioResult.remaining <= 5) toast.warning(`Quedan ${folioResult.remaining} folios`);
+    } catch { toast.error("Error de conexión"); }
+    finally { setSending(false); }
   }
 
   async function consultarEstado() {
-    if (!queryTrackId || !queryPassword) {
-      toast.error("Ingrese TrackID y contraseña del certificado");
-      return;
-    }
+    if (!queryTrackId || !queryPassword) { toast.error("Ingrese TrackID y contraseña"); return; }
     const empresa = getEmpresa();
-    if (!empresa) {
-      toast.error("Configure los datos de la empresa");
-      return;
-    }
+    if (!empresa) { toast.error("Configure la empresa"); return; }
     const certBase64 = getCertificateBase64();
-    if (!certBase64) {
-      toast.error("Cargue su certificado digital");
-      return;
-    }
+    if (!certBase64) { toast.error("Cargue su certificado"); return; }
 
     setQuerying(true);
     try {
       const res = await fetch("/api/dte/status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          trackId: queryTrackId,
-          certBase64,
-          certPassword: queryPassword,
-          empresa,
-        }),
+        body: JSON.stringify({ trackId: queryTrackId, certBase64, certPassword: queryPassword, empresa }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error || "Error al consultar");
-        return;
-      }
+      if (!res.ok) { toast.error(data.error || "Error"); return; }
       setQueryResult(data);
-    } catch {
-      toast.error("Error de conexión");
-    } finally {
-      setQuerying(false);
-    }
+    } catch { toast.error("Error de conexión"); }
+    finally { setQuerying(false); }
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-5">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-          <Receipt className="h-5 w-5 sm:h-6 sm:w-6" />
+        <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-lg bg-[var(--snake-muted)] flex items-center justify-center">
+            <Receipt className="h-4 w-4 text-[var(--snake)]" />
+          </div>
           Factura Electrónica
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground mt-1 ml-[42px] hidden sm:block">
           Genere, firme y envíe documentos al SII.
         </p>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3 sm:pb-6">
-          <CardTitle className="text-base sm:text-lg">Tipo de Documento</CardTitle>
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Tipo de Documento</CardTitle>
         </CardHeader>
         <CardContent>
-          <Select
-            value={String(tipoDte)}
-            onValueChange={(v) => {
-              if (v) setTipoDte(parseInt(v) as DteTypeCode);
-            }}
-          >
+          <Select value={String(tipoDte)} onValueChange={(v) => { if (v) setTipoDte(parseInt(v) as DteTypeCode); }}>
             <SelectTrigger className="w-full sm:max-w-md">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(Object.entries(DTE_TYPES) as [string, string][]).map(
-                ([code, name]) => (
-                  <SelectItem key={code} value={code}>
-                    <span className="flex items-center gap-2">
-                      <Badge variant="secondary" className="font-mono shrink-0">{code}</Badge>
-                      <span className="truncate">{name}</span>
-                    </span>
-                  </SelectItem>
-                )
-              )}
+              {(Object.entries(DTE_TYPES) as [string, string][]).map(([code, name]) => (
+                <SelectItem key={code} value={code}>
+                  <span className="flex items-center gap-2">
+                    <Badge variant="secondary" className="font-mono shrink-0">{code}</Badge>
+                    <span className="truncate">{name}</span>
+                  </span>
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-3 sm:pb-6">
-          <CardTitle className="text-base sm:text-lg">Datos del Receptor</CardTitle>
-          <CardDescription className="hidden sm:block">
-            Información del cliente o destinatario del documento.
-          </CardDescription>
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Receptor</CardTitle>
         </CardHeader>
         <CardContent>
           <ReceptorForm receptor={receptor} onChange={setReceptor} showGiro />
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-3 sm:pb-6">
-          <CardTitle className="text-base sm:text-lg">Detalle</CardTitle>
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Detalle</CardTitle>
         </CardHeader>
         <CardContent>
           <ItemsTable items={items} onChange={setItems} showDescuento={false} />
@@ -297,15 +220,12 @@ function FacturasContent() {
       </Card>
 
       {needsReferencia.includes(tipoDte) && (
-        <Card>
-          <CardHeader className="pb-3 sm:pb-6">
-            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold uppercase tracking-wider text-amber-500 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
               Referencias
             </CardTitle>
-            <CardDescription>
-              Requerido para Notas de Crédito y Débito.
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <ReferenciasForm referencias={referencias} onChange={setReferencias} />
@@ -313,32 +233,32 @@ function FacturasContent() {
         </Card>
       )}
 
-      <Card>
-        <CardHeader className="pb-3 sm:pb-6">
-          <CardTitle className="text-base sm:text-lg">Resumen y Firma</CardTitle>
+      {/* Firma y envío */}
+      <Card className="border-[var(--snake)]/20 bg-[var(--snake-muted)]">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold uppercase tracking-wider text-[var(--snake)] flex items-center gap-2">
+            <Lock className="h-4 w-4" />
+            Firmar y Enviar
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-2 sm:gap-4 p-3 sm:p-4 rounded-lg bg-muted/50">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 p-3 rounded-xl bg-background/50 border border-border/50">
             <div className="text-center">
-              <p className="text-[11px] sm:text-sm text-muted-foreground">Neto</p>
-              <p className="text-sm sm:text-lg font-bold">{formatCurrency(neto)}</p>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Neto</p>
+              <p className="text-sm sm:text-lg font-bold tabular-nums">{formatCurrency(neto)}</p>
             </div>
             <div className="text-center">
-              <p className="text-[11px] sm:text-sm text-muted-foreground">
-                IVA {isExenta ? "(Exento)" : "(19%)"}
-              </p>
-              <p className="text-sm sm:text-lg font-bold">{formatCurrency(iva)}</p>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wider">IVA {isExenta ? "Exento" : "19%"}</p>
+              <p className="text-sm sm:text-lg font-bold tabular-nums">{formatCurrency(iva)}</p>
             </div>
             <div className="text-center">
-              <p className="text-[11px] sm:text-sm text-muted-foreground">Total</p>
-              <p className="text-base sm:text-2xl font-bold">{formatCurrency(total)}</p>
+              <p className="text-[11px] text-[var(--snake)] uppercase tracking-wider font-medium">Total</p>
+              <p className="text-base sm:text-2xl font-bold text-[var(--snake)] tabular-nums">{formatCurrency(total)}</p>
             </div>
           </div>
 
-          <Separator />
-
-          <div className="space-y-2">
-            <Label htmlFor="certPassword">Contraseña del Certificado</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="certPassword" className="text-xs text-muted-foreground">Contraseña del Certificado</Label>
             <Input
               id="certPassword"
               type="password"
@@ -353,7 +273,7 @@ function FacturasContent() {
             onClick={handleSubmit}
             disabled={sending}
             size="lg"
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto bg-[var(--snake)] text-[var(--snake-foreground)] hover:bg-[var(--snake)]/90 shadow-[0_0_20px_var(--snake-muted)]"
           >
             <Send className="mr-2 h-4 w-4" />
             {sending ? "Enviando al SII..." : "Firmar y Enviar al SII"}
@@ -361,58 +281,41 @@ function FacturasContent() {
         </CardContent>
       </Card>
 
-      <Separator />
+      <Separator className="border-border/30" />
 
-      <Card>
-        <CardHeader className="pb-3 sm:pb-6">
-          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-            <Search className="h-4 w-4 sm:h-5 sm:w-5" />
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+            <Search className="h-4 w-4" />
             Consultar Estado
           </CardTitle>
-          <CardDescription className="hidden sm:block">
-            Ingrese el TrackID para verificar el estado en el SII.
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="queryTrackId">TrackID</Label>
-              <Input
-                id="queryTrackId"
-                value={queryTrackId}
-                onChange={(e) => setQueryTrackId(e.target.value)}
-                placeholder="Ej: 123456789"
-              />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">TrackID</Label>
+              <Input value={queryTrackId} onChange={(e) => setQueryTrackId(e.target.value)} placeholder="123456789" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="queryPassword">Contraseña Certificado</Label>
-              <Input
-                id="queryPassword"
-                type="password"
-                value={queryPassword}
-                onChange={(e) => setQueryPassword(e.target.value)}
-                placeholder="Contraseña .pfx/.p12"
-              />
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Contraseña</Label>
+              <Input type="password" value={queryPassword} onChange={(e) => setQueryPassword(e.target.value)} placeholder="Contraseña .pfx" />
             </div>
           </div>
           <Button variant="outline" onClick={consultarEstado} disabled={querying} className="w-full sm:w-auto">
             <Search className="mr-2 h-4 w-4" />
-            {querying ? "Consultando..." : "Consultar Estado"}
+            {querying ? "Consultando..." : "Consultar"}
           </Button>
-
           {queryResult && (
-            <div className="p-3 sm:p-4 rounded-lg border bg-muted/50">
-              <div className="flex items-center gap-2 mb-1">
+            <div className="p-3 rounded-xl border border-border/50 bg-muted/30">
+              <div className="flex items-center gap-2">
                 {queryResult.estado === "EPR" || queryResult.estado === "DOK" ? (
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <CheckCircle2 className="h-5 w-5 text-[var(--snake)]" />
                 ) : (
                   <Clock className="h-5 w-5 text-amber-500" />
                 )}
-                <span className="font-bold">Estado: {queryResult.estado}</span>
+                <span className="font-bold">{queryResult.estado}</span>
               </div>
-              {queryResult.glosa && (
-                <p className="text-sm text-muted-foreground">{queryResult.glosa}</p>
-              )}
+              {queryResult.glosa && <p className="text-sm text-muted-foreground mt-1">{queryResult.glosa}</p>}
             </div>
           )}
         </CardContent>
@@ -422,26 +325,23 @@ function FacturasContent() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <CheckCircle2 className="h-5 w-5 text-[var(--snake)]" />
               DTE Enviado
             </DialogTitle>
-            <DialogDescription>Documento generado, firmado y enviado al SII.</DialogDescription>
+            <DialogDescription>Documento firmado y enviado al SII correctamente.</DialogDescription>
           </DialogHeader>
           {result && (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <span className="font-medium">Tipo:</span>
-                <span className="truncate">{DTE_TYPES[result.tipoDte]}</span>
-                <span className="font-medium">Folio:</span>
+                <span className="text-muted-foreground">Tipo:</span>
+                <span>{DTE_TYPES[result.tipoDte]}</span>
+                <span className="text-muted-foreground">Folio:</span>
                 <span className="font-mono">{result.folio}</span>
-                <span className="font-medium">TrackID:</span>
-                <span className="font-mono break-all">{result.trackId}</span>
-                <span className="font-medium">Estado:</span>
-                <Badge variant="secondary">{result.estado}</Badge>
+                <span className="text-muted-foreground">TrackID:</span>
+                <span className="font-mono break-all text-[var(--snake)]">{result.trackId}</span>
+                <span className="text-muted-foreground">Estado:</span>
+                <Badge className="bg-[var(--snake-muted)] text-[var(--snake)] w-fit">{result.estado}</Badge>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Guarde el TrackID para consultar el estado posteriormente.
-              </p>
             </div>
           )}
         </DialogContent>

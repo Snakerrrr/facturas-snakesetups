@@ -11,7 +11,6 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -48,28 +47,21 @@ export default function CotizacionesPage() {
       toast.error("Debe configurar los datos de la empresa primero");
       return;
     }
-
     setGenerating(true);
     try {
       const res = await fetch("/api/cotizacion/pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          receptor,
-          items,
-          observaciones,
-          diasValidez,
-          empresa,
+          receptor, items, observaciones, diasValidez, empresa,
           logoDataUrl: getLogo(),
         }),
       });
-
       if (!res.ok) {
         const err = await res.json();
         toast.error(err.error || "Error al generar PDF");
         return;
       }
-
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -96,85 +88,123 @@ export default function CotizacionesPage() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-          <FileText className="h-5 w-5 sm:h-6 sm:w-6" />
-          Nueva Cotización
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Arme su cotización y descárguela como PDF.
-        </p>
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-[var(--snake-muted)] flex items-center justify-center">
+              <FileText className="h-4 w-4 text-[var(--snake)]" />
+            </div>
+            Nueva Cotización
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1 ml-[42px] hidden sm:block">
+            Complete los datos y descargue el PDF.
+          </p>
+        </div>
+        <div className="hidden sm:flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={convertirAFactura}
+            disabled={items.every((i) => !i.nombre)}
+          >
+            <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
+            A Factura
+          </Button>
+          <Button
+            size="sm"
+            onClick={downloadPdf}
+            disabled={generating}
+            className="bg-[var(--snake)] text-[var(--snake-foreground)] hover:bg-[var(--snake)]/90 shadow-[0_0_16px_var(--snake-muted)]"
+          >
+            <Download className="mr-1.5 h-3.5 w-3.5" />
+            {generating ? "Generando..." : "Descargar PDF"}
+          </Button>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3 sm:pb-6">
-          <CardTitle className="text-base sm:text-lg">Datos del Cliente</CardTitle>
-          <CardDescription className="hidden sm:block">
-            Información del destinatario de la cotización.
-          </CardDescription>
+      {/* Client */}
+      <Card className="border-border/50 bg-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Cliente
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <ReceptorForm receptor={receptor} onChange={setReceptor} />
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-3 sm:pb-6">
-          <CardTitle className="text-base sm:text-lg">Productos / Servicios</CardTitle>
-          <CardDescription className="hidden sm:block">
-            Agregue los items con sus cantidades y precios.
-          </CardDescription>
+      {/* Items */}
+      <Card className="border-border/50 bg-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Detalle de Items
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <ItemsTable items={items} onChange={setItems} showDescuento />
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-3 sm:pb-6">
-          <CardTitle className="text-base sm:text-lg">Información Adicional</CardTitle>
+      {/* Additional Info */}
+      <Card className="border-border/50 bg-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Adicional
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="diasValidez">Días de Validez</Label>
-            <Input
-              id="diasValidez"
-              type="number"
-              value={diasValidez}
-              onChange={(e) => setDiasValidez(parseInt(e.target.value) || 30)}
-              min={1}
-              className="max-w-[120px]"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="observaciones">Observaciones</Label>
-            <Textarea
-              id="observaciones"
-              value={observaciones}
-              onChange={(e) => setObservaciones(e.target.value)}
-              placeholder="Condiciones de pago, notas adicionales..."
-              rows={3}
-            />
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr] gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="diasValidez" className="text-xs text-muted-foreground">
+                Validez (días)
+              </Label>
+              <Input
+                id="diasValidez"
+                type="number"
+                value={diasValidez}
+                onChange={(e) => setDiasValidez(parseInt(e.target.value) || 30)}
+                min={1}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="observaciones" className="text-xs text-muted-foreground">
+                Observaciones
+              </Label>
+              <Textarea
+                id="observaciones"
+                value={observaciones}
+                onChange={(e) => setObservaciones(e.target.value)}
+                placeholder="Condiciones de pago, notas adicionales..."
+                rows={2}
+                className="resize-none"
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Actions: sticky on mobile */}
-      <div className="sticky bottom-16 md:bottom-0 z-40 -mx-4 sm:-mx-6 md:mx-0 px-4 sm:px-6 md:px-0 py-3 md:py-0 bg-background/80 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none border-t md:border-0">
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-end">
+      {/* Mobile actions */}
+      <div className="sm:hidden sticky bottom-16 z-40 -mx-4 px-4 py-3 bg-background/90 backdrop-blur-md border-t border-border/50">
+        <div className="flex gap-2">
           <Button
             variant="outline"
             onClick={convertirAFactura}
             disabled={items.every((i) => !i.nombre)}
-            className="w-full sm:w-auto"
+            className="flex-1"
           >
-            <ArrowRight className="mr-2 h-4 w-4" />
-            Convertir a Factura
+            <ArrowRight className="mr-1.5 h-4 w-4" />
+            A Factura
           </Button>
-          <Button onClick={downloadPdf} disabled={generating} className="w-full sm:w-auto">
-            <Download className="mr-2 h-4 w-4" />
-            {generating ? "Generando..." : "Descargar PDF"}
+          <Button
+            onClick={downloadPdf}
+            disabled={generating}
+            className="flex-1 bg-[var(--snake)] text-[var(--snake-foreground)] hover:bg-[var(--snake)]/90"
+          >
+            <Download className="mr-1.5 h-4 w-4" />
+            {generating ? "..." : "PDF"}
           </Button>
         </div>
       </div>

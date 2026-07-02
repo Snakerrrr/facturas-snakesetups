@@ -23,6 +23,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: "#0a0a0f",
 };
 
 export default function RootLayout({
@@ -37,7 +38,13 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         {children}
-        <Toaster richColors position="top-right" />
+        <Toaster
+          richColors
+          position="top-right"
+          toastOptions={{
+            className: "!bg-card !border-border !text-card-foreground",
+          }}
+        />
       </body>
     </html>
   );

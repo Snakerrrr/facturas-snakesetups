@@ -1,5 +1,5 @@
 import { Sidebar } from "@/components/sidebar";
-import { SetupBanner } from "@/components/setup-banner";
+import { StatusBar } from "@/components/setup-banner";
 
 export default function DashboardLayout({
   children,
@@ -9,12 +9,22 @@ export default function DashboardLayout({
   return (
     <div className="flex flex-col md:flex-row h-dvh overflow-hidden">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto bg-muted/30 pb-20 md:pb-0">
-        <div className="mx-auto max-w-4xl p-4 sm:p-6 md:p-8">
-          <SetupBanner />
-          {children}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Topbar */}
+        <div className="hidden md:flex items-center justify-between border-b border-border/50 h-14 px-6 bg-background/50 backdrop-blur-sm shrink-0">
+          <div />
+          <StatusBar />
         </div>
-      </main>
+        <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
+          <div className="mx-auto max-w-5xl p-4 sm:p-6 lg:p-8">
+            {/* Mobile status */}
+            <div className="md:hidden mb-4">
+              <StatusBar />
+            </div>
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
